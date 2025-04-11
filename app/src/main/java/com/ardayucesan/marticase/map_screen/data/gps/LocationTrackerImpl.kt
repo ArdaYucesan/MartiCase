@@ -44,15 +44,6 @@ class LocationTrackerImpl(
                 launch { send(Result.Error(GpsError.UnknownException("Gps is disabled"))) }
             }
 
-//            client.lastLocation
-//                .addOnSuccessListener { lastLocation ->
-//
-//                    launch { send(Result.Success(lastLocation)) }
-//                }.addOnFailureListener {
-//                    // UnknownLastLocation error
-//                    launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
-//                }
-
             //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
             val request = LocationRequest.Builder(1000).apply {
                 setPriority(Priority.PRIORITY_HIGH_ACCURACY)

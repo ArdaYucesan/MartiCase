@@ -1,5 +1,6 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
+import android.content.Context
 import android.graphics.Color
 import androidx.fragment.app.Fragment
 
@@ -47,8 +48,7 @@ class MapsFragment : Fragment() {
                 if (encodedPolyline != null) {
                     drawPolylineOnMap(googleMap, encodedPolyline)
                 } else {
-                    drawedPolyline?.remove()
-                    destinationMarker?.remove()
+                    clearPolyline()
                 }
             }
 
@@ -195,6 +195,13 @@ class MapsFragment : Fragment() {
             .width(8f)
 
         drawedPolyline = googleMap.addPolyline(polylineOptions)
+    }
+
+    private fun clearPolyline() {
+        // Clear the polyline from the map
+        drawedPolyline?.remove()
+        destinationMarker?.remove()
+
     }
 
     override fun onCreateView(
