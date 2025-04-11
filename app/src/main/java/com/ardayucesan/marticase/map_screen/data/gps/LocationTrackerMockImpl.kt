@@ -5,6 +5,8 @@ import android.content.Context
 import android.location.Location
 import android.location.LocationManager
 import android.os.Looper
+import android.os.SystemClock
+import com.ardayucesan.marticase.map_screen.data.gps.utility.mockPaths
 import com.ardayucesan.marticase.map_screen.domain.LocationTracker
 import com.ardayucesan.marticase.map_screen.domain.utils.GpsError
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
@@ -50,19 +52,21 @@ class LocationTrackerMockImpl(
 
             client.setMockMode(true)
 
-            client.lastLocation
-                .addOnSuccessListener { lastLocation ->
+//            client.lastLocation
+//                .addOnSuccessListener { lastLocation ->
+//                    launch { send(Result.Success(lastLocation)) }
+//                }.addOnFailureListener {
+//                    // UnknownLastLocation error
+//                    launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
+//                }
 
-                    launch { send(Result.Success(lastLocation)) }
-                }.addOnFailureListener {
-                    // UnknownLastLocation error
-                    launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
-                }
-
-//            startMockingLocations(decodedPaths, 1000)
+            startMockingLocations(mockPaths, 1500)
 
             //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
-            val request = LocationRequest.Builder(interval).apply {}.build()
+            val request = LocationRequest.Builder(2000).apply {
+                setMinUpdateIntervalMillis(2000)
+                setIntervalMillis(2000)
+            }.build()
 
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
@@ -96,6 +100,7 @@ class LocationTrackerMockImpl(
                     longitude = latLng.longitude
                     accuracy = 1f
                     time = System.currentTimeMillis()
+                    elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
                 }
                 setMockLocation(location)
                 delay(interval)
@@ -107,6 +112,6 @@ class LocationTrackerMockImpl(
     private fun setMockLocation(location: Location) {
         client.setMockLocation(location)
             .addOnSuccessListener { println("mock location added") }
-            .addOnFailureListener { println("failed") }
+            .addOnFailureListener { e -> println("Failed to set mock location: ${e.message}") }
     }
 }
