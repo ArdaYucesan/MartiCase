@@ -1,6 +1,8 @@
 package com.ardayucesan.marticase.map_screen.di
 
+import com.ardayucesan.marticase.BuildConfig
 import com.ardayucesan.marticase.map_screen.data.gps.LocationTrackerImpl
+import com.ardayucesan.marticase.map_screen.data.gps.LocationTrackerMockImpl
 import com.ardayucesan.marticase.map_screen.data.gps.repository_impl.LocationRepositoryImpl
 import com.ardayucesan.marticase.map_screen.data.network.HttpClientFactory
 import com.ardayucesan.marticase.map_screen.data.network.repository_impl.RoutesRepositoryImpl
@@ -33,6 +35,25 @@ val appModule = module {
             client = get()
         )
     } bind LocationTracker::class
+//    single<LocationTracker> {
+//        LocationTrackerMockImpl(
+//            context = androidContext(),
+//            client = get()
+//        )
+//    }
+//    single<LocationTracker> {
+//        if (BuildConfig.DEBUG) {
+//            LocationTrackerMockImpl(
+//                context = get(),
+//                client = get()
+//            )
+//        } else {
+//            LocationTrackerImpl(
+//                context = get(),
+//                client = get()
+//            )
+//        }
+//    }
 
     single { LocationRepositoryImpl(locationTracker = get()) } bind LocationRepository::class
     single { RoutesRepositoryImpl(httpClient = get()) } bind RoutesRepository::class

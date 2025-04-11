@@ -12,6 +12,7 @@ import com.ardayucesan.marticase.map_screen.domain.UserLocation
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetRoutesUseCase
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetUserLocationUseCase
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
+import com.google.maps.android.PolyUtil
 import kotlinx.coroutines.launch
 
 class MapsViewModel(
@@ -21,21 +22,9 @@ class MapsViewModel(
     private val _mapsState = MutableLiveData(MapsState())
     val mapsState: LiveData<MapsState> = _mapsState
 
-    private var test = "aaa"
-
-//    fun getTest(): String {
-//        println("frag"+this)
-//        return test
-//    }
-//
-//    fun updateTest(){
-//        test = "bbb"
-//        println("activ"+this)
-//    }
-
     fun onAction(action: MapsAction) {
         when (action) {
-            MapsAction.OnStartLocationTrackerClicked -> {
+            is MapsAction.OnStartLocationTrackerClicked -> {
                 viewModelScope.launch {
                     getUserLocation()
                 }
@@ -44,6 +33,12 @@ class MapsViewModel(
             is MapsAction.OnCreateRoute -> {
                 viewModelScope.launch {
                     getRoutes(action.destination)
+                }
+            }
+
+            is MapsAction.OnDecodedPathCreated -> {
+                viewModelScope.launch {
+//                    getUserLocation(action.route)
                 }
             }
         }
@@ -62,7 +57,8 @@ class MapsViewModel(
                     println("polyline -> ${result.data.encodedPolyline}")
                     _mapsState.postValue(
                         _mapsState.value?.copy(
-                            currentPolyline = result.data
+                            currentPolyline = result.data,
+                            routePaths = PolyUtil.decode(result.data.encodedPolyline)
                         )
                     )
                 }

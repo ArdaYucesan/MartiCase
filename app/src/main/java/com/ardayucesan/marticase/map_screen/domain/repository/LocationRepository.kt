@@ -6,5 +6,7 @@ import com.ardayucesan.marticase.map_screen.domain.utils.Result
 import kotlinx.coroutines.flow.Flow
 
 interface LocationRepository {
-    fun getUserLocationUpdates(intervalMillis: Long): Flow<Result<Location, GpsError>>
+    fun getUserLocationUpdates(
+        intervalMillis: Long,
+    ): Flow<Result<Location, GpsError>>
 }

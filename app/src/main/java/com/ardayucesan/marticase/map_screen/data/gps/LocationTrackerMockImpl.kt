@@ -13,15 +13,19 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
-class LocationTrackerImpl(
+class LocationTrackerMockImpl(
     private val context: Context, private val client: FusedLocationProviderClient
 ) : LocationTracker {
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     @SuppressLint("MissingPermission")
     override fun getLocationUpdates(
@@ -44,29 +48,27 @@ class LocationTrackerImpl(
                 launch { send(Result.Error(GpsError.UnknownException("Gps is disabled"))) }
             }
 
-//            client.lastLocation
-//                .addOnSuccessListener { lastLocation ->
-//
-//                    launch { send(Result.Success(lastLocation)) }
-//                }.addOnFailureListener {
-//                    // UnknownLastLocation error
-//                    launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
-//                }
+            client.setMockMode(true)
+
+            client.lastLocation
+                .addOnSuccessListener { lastLocation ->
+
+                    launch { send(Result.Success(lastLocation)) }
+                }.addOnFailureListener {
+                    // UnknownLastLocation error
+                    launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
+                }
+
+//            startMockingLocations(decodedPaths, 1000)
 
             //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
-            val request = LocationRequest.Builder(2000).apply {
-                setPriority(Priority.PRIORITY_HIGH_ACCURACY)
-                setWaitForAccurateLocation(false)
-                setMinUpdateIntervalMillis(1000)
-                setIntervalMillis(2000)
-            }.build()
+            val request = LocationRequest.Builder(interval).apply {}.build()
 
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
                     super.onLocationResult(result)
                     result.locations.lastOrNull()?.let { location ->
                         //send callback as flow
-                        println("tracker got location ${location}")
                         launch { send(Result.Success(location)) }
                     }
                 }
@@ -82,5 +84,29 @@ class LocationTrackerImpl(
             }
         }
     }
-}
 
+    @SuppressLint("MissingPermission")
+    fun startMockingLocations(decodedPath: List<LatLng>, interval: Long) {
+        client.setMockMode(true)
+
+        scope.launch {
+            for (latLng in decodedPath) {
+                val location = Location(LocationManager.GPS_PROVIDER).apply {
+                    latitude = latLng.latitude
+                    longitude = latLng.longitude
+                    accuracy = 1f
+                    time = System.currentTimeMillis()
+                }
+                setMockLocation(location)
+                delay(interval)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun setMockLocation(location: Location) {
+        client.setMockLocation(location)
+            .addOnSuccessListener { println("mock location added") }
+            .addOnFailureListener { println("failed") }
+    }
+}
