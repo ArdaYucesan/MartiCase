@@ -36,6 +36,8 @@ class LocationTrackerMockImpl(
 
         //returns callback results as flows
         return callbackFlow {
+
+            println("get location update tracker called")
             if (!context.hasLocationPermission()) {
                 //TODO : add new errors for this to GpsError sealed classes
                 launch { send(Result.Error(GpsError.UnknownException("Missing location permission"))) }
@@ -50,8 +52,6 @@ class LocationTrackerMockImpl(
                 launch { send(Result.Error(GpsError.UnknownException("Gps is disabled"))) }
             }
 
-            client.setMockMode(true)
-
 //            client.lastLocation
 //                .addOnSuccessListener { lastLocation ->
 //                    launch { send(Result.Success(lastLocation)) }
@@ -60,12 +60,13 @@ class LocationTrackerMockImpl(
 //                    launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
 //                }
 
-            startMockingLocations(mockPaths, 1500)
+            startMockingLocations(mockPaths, 1000)
 
             //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
-            val request = LocationRequest.Builder(2000).apply {
-                setMinUpdateIntervalMillis(2000)
-                setIntervalMillis(2000)
+            val request = LocationRequest.Builder(1000).apply {
+                setMinUpdateIntervalMillis(1000)
+                setMinUpdateDistanceMeters(20f)
+                setIntervalMillis(1000)
             }.build()
 
             val locationCallback = object : LocationCallback() {
@@ -92,6 +93,8 @@ class LocationTrackerMockImpl(
     @SuppressLint("MissingPermission")
     fun startMockingLocations(decodedPath: List<LatLng>, interval: Long) {
         client.setMockMode(true)
+
+        client.flushLocations()
 
         scope.launch {
             for (latLng in decodedPath) {

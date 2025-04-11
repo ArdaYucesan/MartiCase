@@ -65,6 +65,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.material.v190)
 
     // Fragment içinden viewModels() kullanabilmek için
     implementation(libs.androidx.fragment.ktx)

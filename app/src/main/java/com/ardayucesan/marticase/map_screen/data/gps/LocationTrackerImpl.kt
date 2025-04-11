@@ -54,11 +54,11 @@ class LocationTrackerImpl(
 //                }
 
             //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
-            val request = LocationRequest.Builder(2000).apply {
+            val request = LocationRequest.Builder(1000).apply {
                 setPriority(Priority.PRIORITY_HIGH_ACCURACY)
                 setWaitForAccurateLocation(false)
                 setMinUpdateIntervalMillis(1000)
-                setIntervalMillis(2000)
+                setIntervalMillis(1000)
             }.build()
 
             val locationCallback = object : LocationCallback() {

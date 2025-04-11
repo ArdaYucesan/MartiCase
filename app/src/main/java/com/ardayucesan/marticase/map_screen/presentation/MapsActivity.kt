@@ -1,19 +1,24 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
+import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowInsetsController
+import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.ardayucesan.marticase.R
-import android.Manifest
-import android.content.Intent
-import android.widget.Toast
 import com.ardayucesan.marticase.databinding.ActivityMapsBinding
 import org.koin.androidx.viewmodel.ext.android.viewModel
+
 
 class MapsActivity : AppCompatActivity() {
 
@@ -31,6 +36,20 @@ class MapsActivity : AppCompatActivity() {
 
         setContentView(binding.root)
 
+        val window = window
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val controller = window.insetsController
+
+            if (controller != null) {
+                controller.setSystemBarsAppearance(
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                )
+                window.statusBarColor = ContextCompat.getColor(this, R.color.marti_primary)
+            }
+
+        }
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -41,6 +60,7 @@ class MapsActivity : AppCompatActivity() {
 
         mapsViewModel.mapsState.observe(this) {
             binding.textView.text = it.userLocation?.latitude?.toString() ?: "No latitude available"
+            binding.resetRoute.isEnabled = it.currentPolyline != null
         }
 
         Intent(applicationContext, LocationService::class.java).apply {
@@ -55,13 +75,29 @@ class MapsActivity : AppCompatActivity() {
                     startService(this)
                 }
                 binding.startService.text = "Servis Durdur"
-            }else{
+                binding.startService.backgroundTintList = ContextCompat.getColorStateList(
+                    this,
+                    R.color.marti_accent
+                )
+            } else {
                 Intent(applicationContext, LocationService::class.java).apply {
                     action = LocationService.ACTION_STOP
                     stopService(this)
                 }
+                binding.startService.backgroundTintList = ContextCompat.getColorStateList(
+                    this,
+                    R.color.marti_primary
+                )
                 binding.startService.text = "Servis Başlat"
             }
+        }
+
+        binding.resetRoute.setOnClickListener {
+            mapsViewModel.onAction(MapsAction.OnResetPolyline)
+        }
+
+        binding.clearMarkers.setOnClickListener {
+            mapsViewModel.onAction(MapsAction.OnClearMarkersAndLatLngs)
         }
 
         checkLocationPermission()
