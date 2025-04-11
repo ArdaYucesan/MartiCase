@@ -13,7 +13,6 @@ import android.Manifest
 import android.content.Intent
 import android.widget.Toast
 import com.ardayucesan.marticase.databinding.ActivityMapsBinding
-import com.ardayucesan.marticase.map_screen.data.gps.LocationService
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MapsActivity : AppCompatActivity() {
@@ -44,10 +43,24 @@ class MapsActivity : AppCompatActivity() {
             binding.textView.text = it.userLocation?.latitude?.toString() ?: "No latitude available"
         }
 
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_START
+            startService(this)
+        }
+
         binding.startService.setOnClickListener {
-            Intent(applicationContext, LocationService::class.java).apply {
-                action = LocationService.ACTION_START
-                startService(this)
+            if (binding.startService.text == "Servis Başlat") {
+                Intent(applicationContext, LocationService::class.java).apply {
+                    action = LocationService.ACTION_START
+                    startService(this)
+                }
+                binding.startService.text = "Servis Durdur"
+            }else{
+                Intent(applicationContext, LocationService::class.java).apply {
+                    action = LocationService.ACTION_STOP
+                    stopService(this)
+                }
+                binding.startService.text = "Servis Başlat"
             }
         }
 

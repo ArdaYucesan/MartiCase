@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" tools:ignore="MockLocation" />
+
 
     <uses-feature
         android:name="android.hardware.location.gps"
@@ -41,7 +43,7 @@
         </activity>
 
         <service
-            android:name=".map_screen.data.gps.LocationService"
+            android:name=".map_screen.presentation.LocationService"
             android:foregroundServiceType="location" />
     </application>
 

@@ -11,6 +11,7 @@ import com.ardayucesan.marticase.map_screen.domain.repository.LocationRepository
 import com.ardayucesan.marticase.map_screen.domain.repository.RoutesRepository
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetRoutesUseCase
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetUserLocationUseCase
+import com.ardayucesan.marticase.map_screen.presentation.LocationService
 import com.ardayucesan.marticase.map_screen.presentation.MapsViewModel
 import com.google.android.gms.location.LocationServices
 import io.ktor.client.engine.okhttp.OkHttp
@@ -35,6 +36,12 @@ val appModule = module {
             client = get()
         )
     } bind LocationTracker::class
+//    single {
+//        LocationTrackerMockImpl(
+//            context = androidContext(),
+//            client = get()
+//        )
+//    } bind LocationTracker::class
 //    single<LocationTracker> {
 //        LocationTrackerMockImpl(
 //            context = androidContext(),
@@ -55,11 +62,13 @@ val appModule = module {
 //        }
 //    }
 
-    single { LocationRepositoryImpl(locationTracker = get()) } bind LocationRepository::class
+    single { LocationRepositoryImpl() } bind LocationRepository::class
     single { RoutesRepositoryImpl(httpClient = get()) } bind RoutesRepository::class
 
     single { GetUserLocationUseCase(locationRepository = get()) }
     single { GetRoutesUseCase(routesRepository = get()) }
+
+//    single { LocationService(locationTracker = get(), locationRepository = get()) }
 
     viewModel { MapsViewModel(getUserLocationUseCase = get(), getRoutesUseCase = get()) }
 
