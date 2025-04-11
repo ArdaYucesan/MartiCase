@@ -2,4 +2,7 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="marti_primary">#33D101</color>     <!-- Martı's signature teal -->
+    <color name="marti_secondary">#2D3142</color>   <!-- Dark blue-grey -->
+    <color name="marti_accent">#FF5757</color>
 </resources>
