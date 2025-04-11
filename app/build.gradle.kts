@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("kotlinx-serialization")
     id("kotlin-kapt")
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
@@ -74,6 +75,10 @@ dependencies {
 
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location) // Lokasyon için
+
+    implementation(libs.bundles.ktor)
+
+    implementation(libs.android.maps.utils)
 
 //    implementation(libs.lifecycle.extensions)
 //    implementation(libs.design)

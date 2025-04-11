@@ -13,6 +13,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -50,6 +51,7 @@ class LocationTrackerImpl(
                     launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
                 }
 
+
             //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
             val request = LocationRequest.Builder(interval).apply {}.build()
 
@@ -74,3 +76,4 @@ class LocationTrackerImpl(
         }
     }
 }
+

@@ -54,9 +54,6 @@ class LocationService : Service() {
             .catch { e ->
                 e.printStackTrace()
 
-//                val updatedNotification = notification.setContentText(
-//                    "Unknown exception: ${e.message}"
-//                )
                 notificationManager.cancelAll()
             }
             .onEach { locationResult ->
