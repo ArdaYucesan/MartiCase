@@ -55,6 +55,19 @@ class MapsViewModel(
 //                    getUserLocation(action.route)
                 }
             }
+
+            is MapsAction.OnNewStepAdded -> {
+                addStepLatLngs(action.latLng)
+                action.marker?.let { addStepMarkers(it) }
+            }
+
+            MapsAction.OnClearMarkersAndLatLngs -> {
+                clearMarkersAndLatLngs()
+            }
+
+            MapsAction.OnResetPolyline -> {
+                clearPolyline()
+            }
         }
     }
 
@@ -72,7 +85,6 @@ class MapsViewModel(
                     _mapsState.postValue(
                         _mapsState.value?.copy(
                             currentPolyline = result.data,
-                            routePaths = PolyUtil.decode(result.data.encodedPolyline)
                         )
                     )
                 }
@@ -80,18 +92,40 @@ class MapsViewModel(
         }
     }
 
-    fun addStepLatLngs(latLng : LatLng) {
-
+    private fun clearPolyline() {
+        _mapsState.value = _mapsState.value?.copy(currentPolyline = null)
     }
 
-    fun addStepMarkers(marker: Marker) {
+    private fun clearMarkersAndLatLngs() {
+        _mapsState.value?.stepMarker?.forEach { marker ->
+            marker.remove()
+        }
+
+        _mapsState.value = _mapsState.value?.copy(
+            stepLatLng = emptyList(),
+            stepMarker = emptyList()
+        )
+        println("should be cleared")
+    }
+
+    private fun addStepLatLngs(latLng: LatLng) {
+        _mapsState.value?.let { currentState ->
+            println("should have added new latLn ${latLng}")
+            // Yeni step marker'ı mevcut listeye ekleyip yeni bir kopya oluşturuyoruz
+            _mapsState.value = currentState.copy(stepLatLng = currentState.stepLatLng + latLng)
+        }
+    }
+
+    private fun addStepMarkers(marker: Marker) {
+        println("should have added new marker ${marker}")
+
         _mapsState.value?.let { currentState ->
             // Yeni step marker'ı mevcut listeye ekleyip yeni bir kopya oluşturuyoruz
             _mapsState.value = currentState.copy(stepMarker = currentState.stepMarker + marker)
         }
     }
 
-    fun startLocationTracking() {
+    private fun startLocationTracking() {
         getUserLocationUseCase().observeForever(locationObserver)
     }
 
