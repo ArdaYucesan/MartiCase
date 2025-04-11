@@ -32,30 +32,23 @@ class MapsFragment : Fragment() {
 
     private val mapsViewModel: MapsViewModel by activityViewModel<MapsViewModel>()
     private lateinit var binding: FragmentMapsBinding
-    private var lastPolyline: String? = null
     private var drawedPolyline: Polyline? = null
-
-    private var userMarkerSimulation: Marker? = null
     private var destinationMarker: Marker? = null
-    private val stepMarkers: MutableList<Marker> = mutableListOf()
-    private val stepLatLngs = mutableListOf<LatLng>()
+//    private val stepMarkers: MutableList<Marker> = mutableListOf()
+//    private val stepLatLngs = mutableListOf<LatLng>()
 
     private var userMarker: Marker? = null
 
     private val callback = OnMapReadyCallback { googleMap ->
-        var distanceAccumulator = 0.0 // metrede biriktireceğiz
 
-        mapsViewModel.mapsState.observe(this) { mapsState ->
+        mapsViewModel.mapsState.observeForever { mapsState ->
 
-            mapsState.currentPolyline?.encodedPolyline?.let { encodedPolyline ->
-                if (encodedPolyline != lastPolyline) {
-//                    mapsViewModel.onAction(MapsAction.OnStartLocationTrackerClicked)
-                    lastPolyline = encodedPolyline
-
+            mapsState.currentPolyline?.encodedPolyline.let { encodedPolyline ->
+                if (encodedPolyline != null) {
                     drawPolylineOnMap(googleMap, encodedPolyline)
-
-//                    mapsViewModel.onAction(MapsAction.OnDecodedPathCreated(decodedPath))
-//                    simulateUserWalking(googleMap, encodedPolyline)
+                } else {
+                    drawedPolyline?.remove()
+                    destinationMarker?.remove()
                 }
             }
 
@@ -66,6 +59,9 @@ class MapsFragment : Fragment() {
                 )
             }
 
+            val stepLatLngList = mapsState.stepLatLng
+            val stepMarkerList = mapsState.stepMarker
+
             latLngState?.let { latLng ->
                 if (userMarker == null) {
                     googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
@@ -74,19 +70,29 @@ class MapsFragment : Fragment() {
                             MarkerOptions().position(latLng).title("Marker in User")
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
                         )
-                    userMarker?.let { stepMarkers.add(it) }
                 }
-                println("marker list ${stepMarkers}")
+
+                if (stepLatLngList.isEmpty() && stepMarkerList.isEmpty()) {
+                    val startingMarker = googleMap.addMarker(
+                        MarkerOptions()
+                            .position(latLng)
+                            .title("Starting Marker")
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
+                    )
+
+                    mapsViewModel.onAction(MapsAction.OnNewStepAdded(latLng, startingMarker))
+                }
 
                 userMarker?.position = latLng
                 googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng))
 
-                println("pos mark -> ${stepMarkers.last().position} pos curr -> ${latLng}")
+                val lastStep = stepLatLngList.lastOrNull()
 
-                // Marker yer değiştiriyor ama ölçüm için sabit pozisyonlar gerekli
-                val lastStep = stepLatLngs.lastOrNull()
-
-                if (lastStep == null || SphericalUtil.computeDistanceBetween(lastStep, latLng) >= 100) {
+                if (lastStep != null && SphericalUtil.computeDistanceBetween(
+                        lastStep,
+                        latLng
+                    ) >= 100
+                ) {
                     // Yeni step ekle
                     val newMarker = googleMap.addMarker(
                         MarkerOptions()
@@ -95,8 +101,11 @@ class MapsFragment : Fragment() {
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
                     )
 
-                    newMarker?.let { stepMarkers.add(it) }
-                    stepLatLngs.add(latLng) // Marker'ın pozisyonunu kopya olarak al
+                    newMarker?.let { newMarker ->
+//                        stepMarkers.add(it)
+                        mapsViewModel.onAction(MapsAction.OnNewStepAdded(latLng, newMarker))
+                    }
+//                    stepLatLngs.add(latLng) // Marker'ın pozisyonunu kopya olarak al
                 }
             }
         }
@@ -125,56 +134,56 @@ class MapsFragment : Fragment() {
         }
     }
 
-    private fun simulateUserWalking(googleMap: GoogleMap, encodedPolyline: String) {
-        stepMarkers.forEach { it.remove() }
-        userMarkerSimulation?.remove()
-
-        val decodedPath = PolyUtil.decode(encodedPolyline)
-
-        println("decoded path $decodedPath")
-
-        userMarkerSimulation = googleMap.addMarker(
-            MarkerOptions()
-                .position(decodedPath.first())
-                .title("User is walking")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-        )
-
-        lifecycleScope.launch {
-            var distanceAccumulator = 0.0 // metrede biriktireceğiz
-
-            for (i in 1 until decodedPath.size) {
-                val start = decodedPath[i - 1]
-                val end = decodedPath[i]
-
-                // Kullanıcıyı ilerlet
-                userMarkerSimulation?.position = end
-                googleMap.animateCamera(CameraUpdateFactory.newLatLng(end))
-
-                // Bu adımda alınan mesafeyi hesapla
-                val stepDistance =
-                    SphericalUtil.computeDistanceBetween(start, end) // metre cinsinden
-
-                distanceAccumulator += stepDistance
-
-                // Eğer biriken mesafe 100 metreyi geçtiyse marker bırak
-                if (distanceAccumulator >= 100.0) {
-                    val marker: Marker? = googleMap.addMarker(
-                        MarkerOptions()
-                            .position(end)
-                            .title("100m point")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
-                    )
-                    if (marker != null) {
-                        stepMarkers.add(marker)
-                    }
-                    distanceAccumulator = 0.0 // sıfırla
-                }
-
-                delay(500L) // yürüyüş hızı gibi
-            }
-        }
-    }
+//    private fun simulateUserWalking(googleMap: GoogleMap, encodedPolyline: String) {
+//        stepMarkers.forEach { it.remove() }
+//        userMarkerSimulation?.remove()
+//
+//        val decodedPath = PolyUtil.decode(encodedPolyline)
+//
+//        println("decoded path $decodedPath")
+//
+//        userMarkerSimulation = googleMap.addMarker(
+//            MarkerOptions()
+//                .position(decodedPath.first())
+//                .title("User is walking")
+//                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+//        )
+//
+//        lifecycleScope.launch {
+//            var distanceAccumulator = 0.0 // metrede biriktireceğiz
+//
+//            for (i in 1 until decodedPath.size) {
+//                val start = decodedPath[i - 1]
+//                val end = decodedPath[i]
+//
+//                // Kullanıcıyı ilerlet
+//                userMarkerSimulation?.position = end
+//                googleMap.animateCamera(CameraUpdateFactory.newLatLng(end))
+//
+//                // Bu adımda alınan mesafeyi hesapla
+//                val stepDistance =
+//                    SphericalUtil.computeDistanceBetween(start, end) // metre cinsinden
+//
+//                distanceAccumulator += stepDistance
+//
+//                // Eğer biriken mesafe 100 metreyi geçtiyse marker bırak
+//                if (distanceAccumulator >= 100.0) {
+//                    val marker: Marker? = googleMap.addMarker(
+//                        MarkerOptions()
+//                            .position(end)
+//                            .title("100m point")
+//                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
+//                    )
+//                    if (marker != null) {
+//                        stepMarkers.add(marker)
+//                    }
+//                    distanceAccumulator = 0.0 // sıfırla
+//                }
+//
+//                delay(500L) // yürüyüş hızı gibi
+//            }
+//        }
+//    }
 
     private fun drawPolylineOnMap(googleMap: GoogleMap, encodedPolyline: String) {
         drawedPolyline?.remove()
@@ -182,7 +191,7 @@ class MapsFragment : Fragment() {
 
         val polylineOptions = PolylineOptions()
             .addAll(decodedPath)
-            .color(Color.BLUE) // Renk isteğe bağlı
+            .color(Color.parseColor("#33D101")) // Renk isteğe bağlı
             .width(8f)
 
         drawedPolyline = googleMap.addPolyline(polylineOptions)
