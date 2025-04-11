@@ -1,4 +1,4 @@
-package com.ardayucesan.marticase.map_screen.data.gps
+package com.ardayucesan.marticase.map_screen.presentation
 
 import android.app.NotificationManager
 import android.app.Service
@@ -8,6 +8,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.map_screen.domain.LocationTracker
+import com.ardayucesan.marticase.map_screen.domain.repository.LocationRepository
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ class LocationService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val locationTracker: LocationTracker by inject()
+    private val locationRepository: LocationRepository by inject()
 
     //no need to bind
     override fun onBind(p0: Intent?): IBinder? {
@@ -56,15 +58,19 @@ class LocationService : Service() {
 
                 notificationManager.cancelAll()
             }
-            .onEach { locationResult ->
-
-                val updatedNotification = notification.setContentText(
-                    when (locationResult) {
-                        is Result.Success -> "Location: (${locationResult.data.latitude}, ${locationResult.data.longitude})"
-                        is Result.Error -> "Service Error: ${locationResult.error.message}"
+            .onEach { result ->
+                when (result) {
+                    is Result.Success -> {
+                        val loc = result.data
+                        locationRepository.updateUserLocations(loc) // 🔥 Burada gönderiyoruz
+                        notification.setContentText("Location: (${loc.latitude}, ${loc.longitude})")
                     }
-                )
-                notificationManager.notify(1, updatedNotification.build())
+
+                    is Result.Error -> {
+                        notification.setContentText("Error: ${result.error.message}")
+                    }
+                }
+                notificationManager.notify(1, notification.build())
             }
             .launchIn(serviceScope)
 

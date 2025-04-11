@@ -2,16 +2,21 @@ package com.ardayucesan.marticase.map_screen.presentation
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.location.Location
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ardayucesan.marticase.map_screen.domain.UserLocation
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetRoutesUseCase
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetUserLocationUseCase
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
+import com.ardayucesan.marticase.map_screen.domain.utils.toUserLocation
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.maps.android.PolyUtil
 import kotlinx.coroutines.launch
 
@@ -22,11 +27,20 @@ class MapsViewModel(
     private val _mapsState = MutableLiveData(MapsState())
     val mapsState: LiveData<MapsState> = _mapsState
 
+    private val locationObserver = Observer<Location> { location ->
+
+        println("got location in viewModel observer $location")
+
+        _mapsState.postValue(
+            _mapsState.value?.copy(userLocation = location.toUserLocation())
+        )
+    }
+
     fun onAction(action: MapsAction) {
         when (action) {
             is MapsAction.OnStartLocationTrackerClicked -> {
                 viewModelScope.launch {
-                    getUserLocation()
+                    startLocationTracking()
                 }
             }
 
@@ -66,23 +80,61 @@ class MapsViewModel(
         }
     }
 
-    private suspend fun getUserLocation() {
-
-        // millis under 30000 is unimportant
-        getUserLocationUseCase(5000)
-            .collect { locationResult ->
-                when (locationResult) {
-                    is Result.Error -> TODO()
-                    is Result.Success -> {
-                        // used postValue for updating LiveData from co routine
-                        println("location updated ${locationResult.data.latitude}")
-                        _mapsState.postValue(_mapsState.value?.copy(userLocation = locationResult.data))
-//                        _mapsState.value =
-//                            _mapsState.value!!.copy(userLocation = locationResult.data)
-
-                    }
-                }
-            }
+    fun addStepLatLngs(latLng : LatLng) {
 
     }
+
+    fun addStepMarkers(marker: Marker) {
+        _mapsState.value?.let { currentState ->
+            // Yeni step marker'ı mevcut listeye ekleyip yeni bir kopya oluşturuyoruz
+            _mapsState.value = currentState.copy(stepMarker = currentState.stepMarker + marker)
+        }
+    }
+
+    fun startLocationTracking() {
+        getUserLocationUseCase().observeForever(locationObserver)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        println("observer removed viewmodel")
+        getUserLocationUseCase().removeObserver(locationObserver)
+    }
+
+//    private fun getUserLocation() {
+//        getUserLocationUseCase()
+//            .observeForever { location ->
+//                _mapsState.postValue(
+//                    _mapsState.value?.copy(userLocation = location)
+//                )
+//            }
+////        getUserLocationUseCase().collect { location ->
+////            location?.let {
+////                _mapsState.update {
+////                    it.copy(userLocation = location)
+////                }
+////            }
+////        }
+//        // millis under 30000 is unimportant
+////        getUserLocationUseCase(5000)
+////            .collect { locationResult ->
+////                when (locationResult) {
+////                    is Result.Error -> TODO()
+////                    is Result.Success -> {
+////                        // used postValue for updating LiveData from co routine
+////                        println("location updated ${locationResult.data.latitude}")
+////                        _mapsState.postValue(_mapsState.value?.copy(userLocation = locationResult.data))
+//////                        _mapsState.value =
+//////                            _mapsState.value!!.copy(userLocation = locationResult.data)
+////
+////                    }
+////                }
+////            }
+//
+//    }
+//
+//    override fun onCleared() {
+//        super.onCleared()
+//        locationRepository.locationLiveData.removeObserver { } // Optional temizleme
+//    }
 }
