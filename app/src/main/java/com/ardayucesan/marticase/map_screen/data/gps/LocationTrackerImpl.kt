@@ -28,11 +28,9 @@ class LocationTrackerImpl(
         interval: Long
     ): Flow<Result<Location, GpsError>> {
 
-        //returns callback results as flows
         return callbackFlow {
             if (!context.hasLocationPermission()) {
-                //TODO : add new errors for this to GpsError sealed classes
-                launch { send(Result.Error(GpsError.UnknownException("Missing location permission"))) }
+                launch { send(Result.Error(GpsError.MissingLocationPermission("Missing location permission"))) }
             }
 
             val locationManager =
@@ -40,16 +38,17 @@ class LocationTrackerImpl(
             val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
             val isNetworkEnabled =
                 locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            if (!isGpsEnabled && !isNetworkEnabled) {
-                launch { send(Result.Error(GpsError.UnknownException("Gps is disabled"))) }
+
+            if (!isGpsEnabled) {
+                launch { send(Result.Error(GpsError.GpsDisabled("Gps is disabled"))) }
+            }
+            if (!isNetworkEnabled) {
+                launch { send(Result.Error(GpsError.NetworkDisabled("Network is disabled"))) }
             }
 
-            //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
-            val request = LocationRequest.Builder(1000).apply {
+            val request = LocationRequest.Builder(500).apply {
                 setPriority(Priority.PRIORITY_HIGH_ACCURACY)
-                setWaitForAccurateLocation(false)
-                setMinUpdateIntervalMillis(1000)
-                setIntervalMillis(1000)
+                setMinUpdateIntervalMillis(500)
             }.build()
 
             val locationCallback = object : LocationCallback() {
@@ -57,7 +56,6 @@ class LocationTrackerImpl(
                     super.onLocationResult(result)
                     result.locations.lastOrNull()?.let { location ->
                         //send callback as flow
-                        println("tracker got location ${location}")
                         launch { send(Result.Success(location)) }
                     }
                 }

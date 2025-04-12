@@ -3,24 +3,19 @@ package com.ardayucesan.marticase.map_screen.data.gps.repository_impl
 import android.location.Location
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.ardayucesan.marticase.map_screen.domain.LocationTracker
 import com.ardayucesan.marticase.map_screen.domain.repository.LocationRepository
+import com.ardayucesan.marticase.map_screen.domain.utils.GpsError
+import com.ardayucesan.marticase.map_screen.domain.utils.Result
 
-class LocationRepositoryImpl(
-//    private val locationTracker: LocationTracker
-) : LocationRepository {
+class LocationRepositoryImpl : LocationRepository {
 
-    private val _locationLiveData = MutableLiveData<Location>()
-//    val locationLiveData: LiveData<Location> = _locationLiveData
+    private val _locationLiveData = MutableLiveData<Result<Location, GpsError>>()
 
-    override fun getUserLocationUpdates(): LiveData<Location> {
-        println("user location get in repository impl")
-
+    override fun getUserLocationUpdates(): LiveData<Result<Location, GpsError>> {
         return _locationLiveData
     }
 
-    override fun updateUserLocations(location: Location) {
-        println("user location updated in repository impl")
-        _locationLiveData.postValue(location)
+    override fun updateUserLocations(locationResult: Result<Location, GpsError>) {
+        _locationLiveData.postValue(locationResult)
     }
 }

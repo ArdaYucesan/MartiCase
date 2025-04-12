@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.ardayucesan.marticase.R
+import com.ardayucesan.marticase.map_screen.core.Constants.GPS_SERVICE_NOTIFICATION_CHANNEL
 import com.ardayucesan.marticase.map_screen.domain.LocationTracker
 import com.ardayucesan.marticase.map_screen.domain.repository.LocationRepository
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
@@ -41,7 +42,7 @@ class LocationService : Service() {
     }
 
     private fun start() {
-        val notification = NotificationCompat.Builder(this, "location")
+        val notification = NotificationCompat.Builder(this, GPS_SERVICE_NOTIFICATION_CHANNEL)
             .setContentTitle("Tracking location...")
             .setContentText("Location: null")
             .setSmallIcon(R.drawable.ic_launcher_background)
@@ -59,18 +60,21 @@ class LocationService : Service() {
                 notificationManager.cancelAll()
             }
             .onEach { result ->
+                locationRepository.updateUserLocations(result)
+
                 when (result) {
                     is Result.Success -> {
-                        val loc = result.data
-                        locationRepository.updateUserLocations(loc) // 🔥 Burada gönderiyoruz
-                        notification.setContentText("Location: (${loc.latitude}, ${loc.longitude})")
+                        val location = result.data
+                        notification.setContentText("Location: (${location.latitude}, ${location.longitude})")
                     }
 
                     is Result.Error -> {
+
                         notification.setContentText("Error: ${result.error.message}")
                     }
                 }
                 notificationManager.notify(1, notification.build())
+
             }
             .launchIn(serviceScope)
 

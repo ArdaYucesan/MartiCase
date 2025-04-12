@@ -2,9 +2,11 @@ package com.ardayucesan.marticase.map_screen.domain.repository
 
 import android.location.Location
 import androidx.lifecycle.LiveData
+import com.ardayucesan.marticase.map_screen.domain.utils.GpsError
+import com.ardayucesan.marticase.map_screen.domain.utils.Result
 
 interface LocationRepository {
-    fun getUserLocationUpdates(): LiveData<Location>
+    fun getUserLocationUpdates(): LiveData<Result<Location, GpsError>>
 
-    fun updateUserLocations(location: Location)
+    fun updateUserLocations(locationResult: Result<Location, GpsError>)
 }

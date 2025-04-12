@@ -1,10 +1,8 @@
 package com.ardayucesan.marticase.map_screen.domain.use_case
 
-import com.ardayucesan.marticase.map_screen.data.network.dto.LatLngWrapper
-import com.ardayucesan.marticase.map_screen.data.network.dto.LocationWrapper
 import com.ardayucesan.marticase.map_screen.data.network.dto.Polyline
 import com.ardayucesan.marticase.map_screen.data.network.dto.RouteRequestDto
-import com.ardayucesan.marticase.map_screen.domain.UserLocation
+import com.ardayucesan.marticase.map_screen.domain.AppLocation
 import com.ardayucesan.marticase.map_screen.domain.repository.RoutesRepository
 import com.ardayucesan.marticase.map_screen.domain.toLocationWrapper
 import com.ardayucesan.marticase.map_screen.domain.utils.NetworkError
@@ -14,8 +12,8 @@ class GetRoutesUseCase(
     private val routesRepository: RoutesRepository
 ) {
     suspend operator fun invoke(
-        origin: UserLocation,
-        destination: UserLocation
+        origin: AppLocation,
+        destination: AppLocation
     ): Result<Polyline, NetworkError> {
         val result = routesRepository.getRoutes(
             RouteRequestDto(
