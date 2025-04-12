@@ -1,6 +1,6 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
-import com.ardayucesan.marticase.map_screen.domain.UserLocation
+import com.ardayucesan.marticase.map_screen.domain.AppLocation
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 
@@ -10,11 +10,7 @@ sealed interface MapsAction {
 
 
     data class OnCreateRoute(
-        val destination: UserLocation,
-    ) : MapsAction
-
-    data class OnDecodedPathCreated(
-        val route: List<LatLng> = emptyList()
+        val destination: AppLocation,
     ) : MapsAction
 
     data class OnNewStepAdded(val latLng: LatLng, val marker: Marker?) : MapsAction

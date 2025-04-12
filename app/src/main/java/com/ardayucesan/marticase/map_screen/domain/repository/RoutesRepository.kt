@@ -6,6 +6,5 @@ import com.ardayucesan.marticase.map_screen.domain.utils.NetworkError
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 
 interface RoutesRepository {
-    //TODO : change error class
     suspend fun getRoutes(routesRequestDto: RouteRequestDto): Result<RoutesResponseDto, NetworkError>
 }

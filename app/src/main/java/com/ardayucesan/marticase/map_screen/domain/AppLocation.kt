@@ -5,20 +5,20 @@ import com.ardayucesan.marticase.map_screen.data.network.dto.LatLngWrapper
 import com.ardayucesan.marticase.map_screen.data.network.dto.LocationWrapper
 import com.google.android.gms.maps.model.LatLng
 
-data class UserLocation(
+data class AppLocation(
     val latitude: Double,
     val longitude: Double,
     val timestamp: Long
 )
 
-fun UserLocation.toLatLng(): LatLng {
+fun AppLocation.toLatLng(): LatLng {
     return LatLng(
         this.latitude,
         this.longitude,
     )
 }
 
-fun UserLocation.toLocationWrapper(): LocationWrapper {
+fun AppLocation.toLocationWrapper(): LocationWrapper {
     return LocationWrapper(
         location = LatLngWrapper(
             latLng = LatLngDto(

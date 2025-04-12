@@ -52,21 +52,11 @@ class LocationTrackerMockImpl(
                 launch { send(Result.Error(GpsError.UnknownException("Gps is disabled"))) }
             }
 
-//            client.lastLocation
-//                .addOnSuccessListener { lastLocation ->
-//                    launch { send(Result.Success(lastLocation)) }
-//                }.addOnFailureListener {
-//                    // UnknownLastLocation error
-//                    launch { send(Result.Error(GpsError.UnknownException("No last known location"))) }
-//                }
-
             startMockingLocations(mockPaths, 1000)
 
             //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
             val request = LocationRequest.Builder(1000).apply {
                 setMinUpdateIntervalMillis(1000)
-                setMinUpdateDistanceMeters(20f)
-                setIntervalMillis(1000)
             }.build()
 
             val locationCallback = object : LocationCallback() {

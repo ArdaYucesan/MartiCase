@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import com.ardayucesan.marticase.map_screen.core.Constants.GPS_SERVICE_NOTIFICATION_CHANNEL
 import com.ardayucesan.marticase.map_screen.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -14,9 +15,8 @@ class MartiCaseApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        //TODO : location constant yap
         val channel = NotificationChannel(
-            "location",
+            GPS_SERVICE_NOTIFICATION_CHANNEL,
             "Location",
             NotificationManager.IMPORTANCE_LOW
         )
