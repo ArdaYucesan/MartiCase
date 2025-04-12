@@ -41,6 +41,11 @@ class LocationService : Service() {
         return super.onStartCommand(intent, flags, startId)
     }
 
+    /**
+     * Servisi başlatır , servisin çalıştığını gösteren bildirimi oluşturur ve gönderir
+     * LocationTracker sınıfı ile lokasyon verisini alır
+     * LocationRepository ile alınan lokasyon verisini günceller, verinin uygulamanın başka alanlarında önplanda ve arkaplanda erişilebilir olmasını sağlar
+     */
     private fun start() {
         val notification = NotificationCompat.Builder(this, GPS_SERVICE_NOTIFICATION_CHANNEL)
             .setContentTitle("Tracking location...")
@@ -81,6 +86,7 @@ class LocationService : Service() {
         startForeground(1, notification.build())
     }
 
+    //Servisi durdurur , servisin çalıştığı co routine kapatılınca LocationTracker üzerinden gelen veri akışı da kesilir.
     private fun stop() {
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()

@@ -10,7 +10,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.lifecycleScope
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.databinding.FragmentMapsBinding
 import com.ardayucesan.marticase.map_screen.domain.AppLocation
@@ -21,7 +20,6 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.PolyUtil
 import com.google.maps.android.SphericalUtil
-import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import java.util.Locale
 
@@ -72,7 +70,7 @@ class MapsFragment : Fragment() {
                 }
 
                 // Mevcut konuma göre kullanıcı marker güncellenir
-                updateUserMarker(googleMap, userMarker, latLng)
+                updateMapCamera(googleMap, latLng)
 
                 // 100 metrede bir step marker ekler
                 calculateStep(googleMap, mapsState.stepLatLng.lastOrNull(), latLng)
@@ -83,7 +81,6 @@ class MapsFragment : Fragment() {
         googleMap.setOnMapClickListener { latLng ->
             createDestinationMarker(googleMap, latLng)
         }
-
     }
 
     override fun onCreateView(
@@ -117,9 +114,9 @@ class MapsFragment : Fragment() {
     }
 
     // Kullanıcı marker'ını günceller ve harita kamerasını hareket ettirir
-    private fun updateUserMarker(googleMap: GoogleMap, userMarker: Marker?, latLng: LatLng) {
+    private fun updateMapCamera(googleMap: GoogleMap, latLng: LatLng) {
 //        userMarker?.position = latLng
-        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,zoom))
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
     }
 
     // İlk kez kullanıcı marker'ı oluşturur ve haritayı bu noktaya zoom yapar
