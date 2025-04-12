@@ -6,6 +6,8 @@ import com.ardayucesan.marticase.map_screen.domain.repository.LocationRepository
 import com.ardayucesan.marticase.map_screen.domain.utils.GpsError
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 
+//LocationRepository inject edilerek , kullanıcı lokasyon verisini alır ve döner
+//Bu case özelinde gereği olmayan bir sınıf , sadece daha büyük bir projede nasıl kullanacağımı göstermek için kullandım
 class GetUserLocationUseCase(
     private val locationRepository: LocationRepository
 ) {
