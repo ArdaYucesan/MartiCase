@@ -29,12 +29,12 @@ class MapsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
 
+        //statusbar rengi değiştirmek için eklendi
         val window = window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val controller = window.insetsController
@@ -56,7 +56,6 @@ class MapsActivity : AppCompatActivity() {
 
         checkLocationPermission()
 
-
         binding.startService.setOnClickListener {
             if (binding.startService.text == "Servis Başlat") {
                 startLocationService()
@@ -72,10 +71,6 @@ class MapsActivity : AppCompatActivity() {
         binding.clearMarkers.setOnClickListener {
             mapsViewModel.onAction(MapsAction.OnClearMarkersAndLatLngs)
         }
-
-//        binding.currentLocationFab.setOnClickListener {
-//            mapsViewModel.onAction(MapsAction.OnFocusCurrentLocation)
-//        }
 
         lifecycleScope.launch {
             mapsViewModel.events.collect { event ->
@@ -103,6 +98,7 @@ class MapsActivity : AppCompatActivity() {
         }
     }
 
+    // Lokasyon takibinin önplan ve arkaplanda çalışmasını sağlayan lokasyon servisini açar
     private fun startLocationService() {
         Intent(applicationContext, LocationService::class.java).apply {
             action = LocationService.ACTION_START
@@ -115,6 +111,7 @@ class MapsActivity : AppCompatActivity() {
         )
     }
 
+    // Lokasyon takibinin önplan ve arkaplanda çalışmasını sağlayan lokasyon servisini kapatır
     private fun stopLocationService() {
         Intent(applicationContext, LocationService::class.java).apply {
             action = LocationService.ACTION_STOP
