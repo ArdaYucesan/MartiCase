@@ -1,5 +1,6 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
+import android.annotation.SuppressLint
 import android.graphics.Color
 import android.location.Address
 import android.location.Geocoder
@@ -9,6 +10,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.databinding.FragmentMapsBinding
 import com.ardayucesan.marticase.map_screen.domain.AppLocation
@@ -19,6 +21,7 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.PolyUtil
 import com.google.maps.android.SphericalUtil
+import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import java.util.Locale
 
@@ -39,9 +42,15 @@ class MapsFragment : Fragment() {
     // Adres çözümlemek için geocoder
     private lateinit var geocoder: Geocoder
 
+    private val zoom: Float = 17f
+
 
     // Harita hazır olduğunda çalışacak callback
+    @SuppressLint("MissingPermission")
     private val callback = OnMapReadyCallback { googleMap ->
+        googleMap.isMyLocationEnabled = true
+        googleMap.uiSettings.isMyLocationButtonEnabled = true
+        googleMap.uiSettings.isMapToolbarEnabled = true
 
         // ViewModel'deki tetiklenen state değişimleri izleniyor
         mapsViewModel.mapsState.observeForever { mapsState ->
@@ -57,11 +66,6 @@ class MapsFragment : Fragment() {
             }
 
             currentLatLng?.let { latLng ->
-                // Kullanıcı marker'ı henüz oluşturulmamışsa yaratılır
-                if (userMarker == null) {
-                    createUserMarker(googleMap, latLng)
-                }
-
                 // Eğer step marker listeleri boşsa başlangıç marker'ını oluşturulur / İşaretler temizlenirse tekrar oluşturulur
                 if (mapsState.stepLatLng.isEmpty() && mapsState.stepMarker.isEmpty()) {
                     createStartingMarker(googleMap, latLng)
@@ -79,9 +83,14 @@ class MapsFragment : Fragment() {
         googleMap.setOnMapClickListener { latLng ->
             createDestinationMarker(googleMap, latLng)
         }
+
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         binding = FragmentMapsBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -98,20 +107,25 @@ class MapsFragment : Fragment() {
 
     // İki nokta arasındaki mesafeyi hesaplayıp, 100 metreyi geçerse yeni bir step marker'ı oluşturur
     private fun calculateStep(googleMap: GoogleMap, lastLatLng: LatLng?, currentLatLng: LatLng) {
-        if (lastLatLng != null && SphericalUtil.computeDistanceBetween(lastLatLng, currentLatLng) >= 100) {
+        if (lastLatLng != null && SphericalUtil.computeDistanceBetween(
+                lastLatLng,
+                currentLatLng
+            ) >= 100
+        ) {
             createStepMarker(googleMap, currentLatLng)
         }
     }
 
     // Kullanıcı marker'ını günceller ve harita kamerasını hareket ettirir
     private fun updateUserMarker(googleMap: GoogleMap, userMarker: Marker?, latLng: LatLng) {
-        userMarker?.position = latLng
-        googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng))
+//        userMarker?.position = latLng
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,zoom))
     }
 
     // İlk kez kullanıcı marker'ı oluşturur ve haritayı bu noktaya zoom yapar
+    // GoogleMap myLocation enable edildikten sonra kullanılmasına gerek kalmadı , özelleştirme yapılmak istenirse aktif edilir
     private fun createUserMarker(googleMap: GoogleMap, latLng: LatLng) {
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
         userMarker = googleMap.addMarker(
             MarkerOptions().position(latLng).title("Marker in User")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
@@ -178,9 +192,11 @@ class MapsFragment : Fragment() {
                 1,
                 object : Geocoder.GeocodeListener {
                     override fun onGeocode(addresses: MutableList<Address>) {
-                        val addressTitle = addresses.firstOrNull()?.getAddressLine(0) ?: notFoundTitle
+                        val addressTitle =
+                            addresses.firstOrNull()?.getAddressLine(0) ?: notFoundTitle
                         val marker = googleMap.addMarker(
-                            MarkerOptions().position(latLng).title(addressTitle).icon(BitmapDescriptorFactory.defaultMarker(markerHue))
+                            MarkerOptions().position(latLng).title(addressTitle)
+                                .icon(BitmapDescriptorFactory.defaultMarker(markerHue))
                         )
                         onMarkerAdded(marker)
                     }
@@ -188,7 +204,8 @@ class MapsFragment : Fragment() {
                     override fun onError(errorMessage: String?) {
                         super.onError(errorMessage)
                         val marker = googleMap.addMarker(
-                            MarkerOptions().position(latLng).title(notFoundTitle).icon(BitmapDescriptorFactory.defaultMarker(markerHue))
+                            MarkerOptions().position(latLng).title(notFoundTitle)
+                                .icon(BitmapDescriptorFactory.defaultMarker(markerHue))
                         )
                         onMarkerAdded(marker)
                     }
@@ -198,7 +215,8 @@ class MapsFragment : Fragment() {
             val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
             val addressTitle = addresses?.firstOrNull()?.getAddressLine(0) ?: notFoundTitle
             val marker = googleMap.addMarker(
-                MarkerOptions().position(latLng).title(addressTitle).icon(BitmapDescriptorFactory.defaultMarker(markerHue))
+                MarkerOptions().position(latLng).title(addressTitle)
+                    .icon(BitmapDescriptorFactory.defaultMarker(markerHue))
             )
             onMarkerAdded(marker)
         }
@@ -217,7 +235,8 @@ class MapsFragment : Fragment() {
     private fun drawPolylineOnMap(googleMap: GoogleMap, encodedPolyline: String) {
         drawedPolyline?.remove()
         val decodedPath: List<LatLng> = PolyUtil.decode(encodedPolyline)
-        val polylineOptions = PolylineOptions().addAll(decodedPath).color(Color.parseColor("#33D101")).width(8f)
+        val polylineOptions =
+            PolylineOptions().addAll(decodedPath).color(Color.parseColor("#33D101")).width(8f)
         drawedPolyline = googleMap.addPolyline(polylineOptions)
     }
 
