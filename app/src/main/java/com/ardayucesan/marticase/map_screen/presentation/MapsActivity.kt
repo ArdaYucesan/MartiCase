@@ -18,7 +18,23 @@ import com.ardayucesan.marticase.databinding.ActivityMapsBinding
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-
+/**
+ * Bu uygulama, Martı tarafından gönderilen case çalışması için geliştirilmiştir.
+ *
+ * Tek aktiviteli basit bir uygulama olmasına rağmen, daha kapsamlı projelerde kullanılabilecek
+ * mimari yapıları ve tasarım desenlerini göstermek amacıyla geliştirilmiştir.
+ *
+ * Temel İşlevler:
+ * - Kullanıcı konumunu gerçek zamanlı takip etme
+ * - Google Maps entegrasyonu
+ * - Google Routes API Rota hesaplama ve çizimi
+ * - MVVM mimarisi kullanımı
+ *
+ * Not: Bu yapıların bazıları tek sayfalık bir uygulama için fazla karmaşık olabilir,
+ * ancak büyük ölçekli projelerdeki kullanımlarını göstermek için eklenmiştir.
+ *
+ * @author Arda Yücesan
+ */
 class MapsActivity : AppCompatActivity() {
 
     //mapsViewModel koin ile inject edildi ,Singleton olarak inject edildiği için MapsFragment ile aynı viewModel instance'ı kullanmış olduk

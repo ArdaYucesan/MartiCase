@@ -20,16 +20,14 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
+// koine sağlanacak moddül , burada tanımlanan bağımlılıklar çağrıldıkları yerde inject edilebilir hale gelirler
 val appModule = module {
-
-    //TODO : doğru bir uygulama mı androidContext injection incele
 
     single { HttpClientFactory.create(OkHttp.create()) }
 
     single {
         LocationServices.getFusedLocationProviderClient(androidContext())
     }
-//
     single {
         LocationTrackerImpl(
             context = androidContext(),
@@ -41,26 +39,6 @@ val appModule = module {
 //            context = androidContext(),
 //            client = get()
 //        )
-//    } bind LocationTracker::class
-//    single<LocationTracker> {
-//        LocationTrackerMockImpl(
-//            context = androidContext(),
-//            client = get()
-//        )
-//    }
-//    single<LocationTracker> {
-//        if (BuildConfig.DEBUG) {
-//            LocationTrackerMockImpl(
-//                context = get(),
-//                client = get()
-//            )
-//        } else {
-//            LocationTrackerImpl(
-//                context = get(),
-//                client = get()
-//            )
-//        }
-//    }
 
     single { LocationRepositoryImpl() } bind LocationRepository::class
     single { RoutesRepositoryImpl(httpClient = get()) } bind RoutesRepository::class
@@ -68,11 +46,6 @@ val appModule = module {
     single { GetUserLocationUseCase(locationRepository = get()) }
     single { GetRoutesUseCase(routesRepository = get()) }
 
-//    single { LocationService(locationTracker = get(), locationRepository = get()) }
-
     viewModel { MapsViewModel(getUserLocationUseCase = get(), getRoutesUseCase = get()) }
 
-//    scope(named("activityScope")) {
-//        viewModel { MapsViewModel(getUserLocationUseCase = get()) }
-//    }
 }

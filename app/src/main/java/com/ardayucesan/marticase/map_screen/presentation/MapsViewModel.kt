@@ -37,6 +37,7 @@ class MapsViewModel(
     private val _mapsState = MutableLiveData(MapsState())
     val mapsState: LiveData<MapsState> = _mapsState
 
+    //ViewModeldan tetiklenmek istenen arayüz eventlerini temsil eder
     private val _events = Channel<MapsEvent>()
     val events = _events.receiveAsFlow()
 
@@ -139,7 +140,6 @@ class MapsViewModel(
         }
     }
 
-
     //Adım markerlarını state'e ekler.
     private fun addStepMarkers(marker: Marker) {
         _mapsState.value?.let { currentState ->
@@ -152,7 +152,6 @@ class MapsViewModel(
     private fun startLocationTracking() {
         getUserLocationUseCase().observeForever(locationObserver)
     }
-
 
     //ViewModel yaşam döngüsü sona erdiğinde observer kaydı temizlenir.
     override fun onCleared() {
