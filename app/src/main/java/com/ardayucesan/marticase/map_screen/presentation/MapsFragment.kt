@@ -1,225 +1,229 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
-import android.content.Context
 import android.graphics.Color
+import android.location.Address
+import android.location.Geocoder
+import android.os.Build
 import androidx.fragment.app.Fragment
-
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.lifecycleScope
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.databinding.FragmentMapsBinding
-import com.ardayucesan.marticase.map_screen.domain.UserLocation
-
+import com.ardayucesan.marticase.map_screen.domain.AppLocation
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
-import com.google.android.gms.maps.model.Polyline
-import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.*
 import com.google.maps.android.PolyUtil
 import com.google.maps.android.SphericalUtil
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import java.util.Locale
 
 class MapsFragment : Fragment() {
 
+    // ViewModel'i Koin üzerinden inject edildi, fragment'ın yaşam döngüsüne bağlı.
     private val mapsViewModel: MapsViewModel by activityViewModel<MapsViewModel>()
-    private lateinit var binding: FragmentMapsBinding
-    private var drawedPolyline: Polyline? = null
-    private var destinationMarker: Marker? = null
-//    private val stepMarkers: MutableList<Marker> = mutableListOf()
-//    private val stepLatLngs = mutableListOf<LatLng>()
 
+    private lateinit var binding: FragmentMapsBinding
+
+    // Haritadaki aktif polyline referansı
+    private var drawedPolyline: Polyline? = null
+
+    // Hedef ve kullanıcı marker referansları
+    private var destinationMarker: Marker? = null
     private var userMarker: Marker? = null
 
+    // Adres çözümlemek için geocoder
+    private lateinit var geocoder: Geocoder
+
+
+    // Harita hazır olduğunda çalışacak callback
     private val callback = OnMapReadyCallback { googleMap ->
 
+        // ViewModel'deki tetiklenen state değişimleri izleniyor
         mapsViewModel.mapsState.observeForever { mapsState ->
 
+            // Eğer polyline bilgisi varsa haritada çizilir
             mapsState.currentPolyline?.encodedPolyline.let { encodedPolyline ->
-                if (encodedPolyline != null) {
-                    drawPolylineOnMap(googleMap, encodedPolyline)
-                } else {
-                    clearPolyline()
-                }
+                handlePolyline(googleMap, encodedPolyline)
             }
 
-            val latLngState = mapsState.userLocation?.let { location ->
-                LatLng(
-                    location.latitude,
-                    location.longitude
-                )
+            // Kullanıcının mevcut konumunu alıp LatLng sınıfına çeviriyor
+            val currentLatLng = mapsState.userLocation?.let { location ->
+                LatLng(location.latitude, location.longitude)
             }
 
-            val stepLatLngList = mapsState.stepLatLng
-            val stepMarkerList = mapsState.stepMarker
-
-            latLngState?.let { latLng ->
+            currentLatLng?.let { latLng ->
+                // Kullanıcı marker'ı henüz oluşturulmamışsa yaratılır
                 if (userMarker == null) {
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
-                    userMarker =
-                        googleMap.addMarker(
-                            MarkerOptions().position(latLng).title("Marker in User")
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-                        )
+                    createUserMarker(googleMap, latLng)
                 }
 
-                if (stepLatLngList.isEmpty() && stepMarkerList.isEmpty()) {
-                    val startingMarker = googleMap.addMarker(
-                        MarkerOptions()
-                            .position(latLng)
-                            .title("Starting Marker")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
-                    )
-
-                    mapsViewModel.onAction(MapsAction.OnNewStepAdded(latLng, startingMarker))
+                // Eğer step marker listeleri boşsa başlangıç marker'ını oluşturulur / İşaretler temizlenirse tekrar oluşturulur
+                if (mapsState.stepLatLng.isEmpty() && mapsState.stepMarker.isEmpty()) {
+                    createStartingMarker(googleMap, latLng)
                 }
 
-                userMarker?.position = latLng
-                googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng))
+                // Mevcut konuma göre kullanıcı marker güncellenir
+                updateUserMarker(googleMap, userMarker, latLng)
 
-                val lastStep = stepLatLngList.lastOrNull()
-
-                if (lastStep != null && SphericalUtil.computeDistanceBetween(
-                        lastStep,
-                        latLng
-                    ) >= 100
-                ) {
-                    // Yeni step ekle
-                    val newMarker = googleMap.addMarker(
-                        MarkerOptions()
-                            .position(latLng)
-                            .title("100m Step")
-                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-                    )
-
-                    newMarker?.let { newMarker ->
-//                        stepMarkers.add(it)
-                        mapsViewModel.onAction(MapsAction.OnNewStepAdded(latLng, newMarker))
-                    }
-//                    stepLatLngs.add(latLng) // Marker'ın pozisyonunu kopya olarak al
-                }
+                // 100 metrede bir step marker ekler
+                calculateStep(googleMap, mapsState.stepLatLng.lastOrNull(), latLng)
             }
         }
 
+        // Haritada herhangi bir yere tıklanınca hedef marker oluştur
         googleMap.setOnMapClickListener { latLng ->
-            // latLng.latitude ve latLng.longitude ile konuma erişebilirsin
-            println("Tıklanan konum: Lat=${latLng.latitude}, Lng=${latLng.longitude}")
-            destinationMarker?.remove()
-            // Örnek: Marker eklemek istersen
-            destinationMarker = googleMap.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .title("Seçilen Konum")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-            )
-
-            mapsViewModel.onAction(
-                MapsAction.OnCreateRoute(
-                    destination = UserLocation(
-                        latLng.latitude,
-                        latLng.longitude,
-                        System.currentTimeMillis()
-                    ),
-                )
-            )
+            createDestinationMarker(googleMap, latLng)
         }
     }
 
-//    private fun simulateUserWalking(googleMap: GoogleMap, encodedPolyline: String) {
-//        stepMarkers.forEach { it.remove() }
-//        userMarkerSimulation?.remove()
-//
-//        val decodedPath = PolyUtil.decode(encodedPolyline)
-//
-//        println("decoded path $decodedPath")
-//
-//        userMarkerSimulation = googleMap.addMarker(
-//            MarkerOptions()
-//                .position(decodedPath.first())
-//                .title("User is walking")
-//                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-//        )
-//
-//        lifecycleScope.launch {
-//            var distanceAccumulator = 0.0 // metrede biriktireceğiz
-//
-//            for (i in 1 until decodedPath.size) {
-//                val start = decodedPath[i - 1]
-//                val end = decodedPath[i]
-//
-//                // Kullanıcıyı ilerlet
-//                userMarkerSimulation?.position = end
-//                googleMap.animateCamera(CameraUpdateFactory.newLatLng(end))
-//
-//                // Bu adımda alınan mesafeyi hesapla
-//                val stepDistance =
-//                    SphericalUtil.computeDistanceBetween(start, end) // metre cinsinden
-//
-//                distanceAccumulator += stepDistance
-//
-//                // Eğer biriken mesafe 100 metreyi geçtiyse marker bırak
-//                if (distanceAccumulator >= 100.0) {
-//                    val marker: Marker? = googleMap.addMarker(
-//                        MarkerOptions()
-//                            .position(end)
-//                            .title("100m point")
-//                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
-//                    )
-//                    if (marker != null) {
-//                        stepMarkers.add(marker)
-//                    }
-//                    distanceAccumulator = 0.0 // sıfırla
-//                }
-//
-//                delay(500L) // yürüyüş hızı gibi
-//            }
-//        }
-//    }
-
-    private fun drawPolylineOnMap(googleMap: GoogleMap, encodedPolyline: String) {
-        drawedPolyline?.remove()
-        val decodedPath: List<LatLng> = PolyUtil.decode(encodedPolyline)
-
-        val polylineOptions = PolylineOptions()
-            .addAll(decodedPath)
-            .color(Color.parseColor("#33D101")) // Renk isteğe bağlı
-            .width(8f)
-
-        drawedPolyline = googleMap.addPolyline(polylineOptions)
-    }
-
-    private fun clearPolyline() {
-        // Clear the polyline from the map
-        drawedPolyline?.remove()
-        destinationMarker?.remove()
-
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         binding = FragmentMapsBinding.inflate(inflater, container, false)
-
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-//        mapsViewModel.onAction(MapsAction.OnStartLocationTrackerClicked)
+
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment?
+
+        geocoder = Geocoder(requireContext(), Locale.getDefault())
+
         mapFragment?.getMapAsync(callback)
     }
 
+    // İki nokta arasındaki mesafeyi hesaplayıp, 100 metreyi geçerse yeni bir step marker'ı oluşturur
+    private fun calculateStep(googleMap: GoogleMap, lastLatLng: LatLng?, currentLatLng: LatLng) {
+        if (lastLatLng != null && SphericalUtil.computeDistanceBetween(lastLatLng, currentLatLng) >= 100) {
+            createStepMarker(googleMap, currentLatLng)
+        }
+    }
 
+    // Kullanıcı marker'ını günceller ve harita kamerasını hareket ettirir
+    private fun updateUserMarker(googleMap: GoogleMap, userMarker: Marker?, latLng: LatLng) {
+        userMarker?.position = latLng
+        googleMap.animateCamera(CameraUpdateFactory.newLatLng(latLng))
+    }
+
+    // İlk kez kullanıcı marker'ı oluşturur ve haritayı bu noktaya zoom yapar
+    private fun createUserMarker(googleMap: GoogleMap, latLng: LatLng) {
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+        userMarker = googleMap.addMarker(
+            MarkerOptions().position(latLng).title("Marker in User")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+        )
+    }
+
+    // Yeni bir adım marker'ı bırakır, ViewModel'e bildirir
+    private fun createStepMarker(googleMap: GoogleMap, latLng: LatLng) {
+        addMarkerWithAddress(
+            googleMap = googleMap,
+            latLng = latLng,
+            markerHue = BitmapDescriptorFactory.HUE_AZURE,
+            notFoundTitle = "100m Step"
+        ) { marker ->
+            mapsViewModel.onAction(MapsAction.OnNewStepAdded(latLng, marker))
+        }
+    }
+
+    // Hedef konumu haritada işaretler ve rota hesaplaması için ViewModel'e bildirir
+    private fun createDestinationMarker(googleMap: GoogleMap, latLng: LatLng) {
+        println("Tıklanan konum: Lat=${latLng.latitude}, Lng=${latLng.longitude}")
+        destinationMarker?.remove()
+        destinationMarker = googleMap.addMarker(
+            MarkerOptions()
+                .position(latLng)
+                .title("Seçilen Konum")
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        )
+
+        mapsViewModel.onAction(
+            MapsAction.OnCreateRoute(
+                destination = AppLocation(
+                    latLng.latitude,
+                    latLng.longitude,
+                    System.currentTimeMillis()
+                )
+            )
+        )
+    }
+
+    // Başlangıç noktasında marker oluşturur, step olarak kaydeder
+    private fun createStartingMarker(googleMap: GoogleMap, latLng: LatLng) {
+        addMarkerWithAddress(
+            googleMap = googleMap,
+            latLng = latLng,
+            markerHue = BitmapDescriptorFactory.HUE_ORANGE
+        ) { marker ->
+            mapsViewModel.onAction(MapsAction.OnNewStepAdded(latLng, marker))
+        }
+    }
+
+    // Adres bilgisini almak için marker ekleyen yardımcı metod , geooder sınıfı api 33 ve üzerinde callback fonksiyonu ile çalışıyor , 33 ve üzeri için blocking fonksiyon kullanıldı
+    private fun addMarkerWithAddress(
+        googleMap: GoogleMap,
+        latLng: LatLng,
+        markerHue: Float,
+        notFoundTitle: String = "Address not found",
+        onMarkerAdded: (Marker?) -> Unit
+    ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            geocoder.getFromLocation(
+                latLng.latitude,
+                latLng.longitude,
+                1,
+                object : Geocoder.GeocodeListener {
+                    override fun onGeocode(addresses: MutableList<Address>) {
+                        val addressTitle = addresses.firstOrNull()?.getAddressLine(0) ?: notFoundTitle
+                        val marker = googleMap.addMarker(
+                            MarkerOptions().position(latLng).title(addressTitle).icon(BitmapDescriptorFactory.defaultMarker(markerHue))
+                        )
+                        onMarkerAdded(marker)
+                    }
+
+                    override fun onError(errorMessage: String?) {
+                        super.onError(errorMessage)
+                        val marker = googleMap.addMarker(
+                            MarkerOptions().position(latLng).title(notFoundTitle).icon(BitmapDescriptorFactory.defaultMarker(markerHue))
+                        )
+                        onMarkerAdded(marker)
+                    }
+                }
+            )
+        } else {
+            val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+            val addressTitle = addresses?.firstOrNull()?.getAddressLine(0) ?: notFoundTitle
+            val marker = googleMap.addMarker(
+                MarkerOptions().position(latLng).title(addressTitle).icon(BitmapDescriptorFactory.defaultMarker(markerHue))
+            )
+            onMarkerAdded(marker)
+        }
+    }
+
+    // Polyline verisini kontrol eder, mevcutsa haritada çizer yoksa temizler
+    private fun handlePolyline(googleMap: GoogleMap, encodedPolyline: String?) {
+        if (encodedPolyline != null) {
+            drawPolylineOnMap(googleMap, encodedPolyline)
+        } else {
+            clearPolyline()
+        }
+    }
+
+    // Encoded polyline verisini decode edip haritada çizer
+    private fun drawPolylineOnMap(googleMap: GoogleMap, encodedPolyline: String) {
+        drawedPolyline?.remove()
+        val decodedPath: List<LatLng> = PolyUtil.decode(encodedPolyline)
+        val polylineOptions = PolylineOptions().addAll(decodedPath).color(Color.parseColor("#33D101")).width(8f)
+        drawedPolyline = googleMap.addPolyline(polylineOptions)
+    }
+
+    // Polyline ve hedef marker'ını temizler
+    private fun clearPolyline() {
+        drawedPolyline?.remove()
+        destinationMarker?.remove()
+    }
 }
