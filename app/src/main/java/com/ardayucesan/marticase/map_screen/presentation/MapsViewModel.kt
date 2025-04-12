@@ -1,41 +1,67 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
-import android.annotation.SuppressLint
-import android.app.Application
 import android.location.Location
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ardayucesan.marticase.map_screen.domain.UserLocation
+import com.ardayucesan.marticase.map_screen.domain.AppLocation
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetRoutesUseCase
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetUserLocationUseCase
+import com.ardayucesan.marticase.map_screen.domain.utils.GpsError
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
-import com.ardayucesan.marticase.map_screen.domain.utils.toUserLocation
+import com.ardayucesan.marticase.map_screen.domain.utils.toAppLocation
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
-import com.google.maps.android.PolyUtil
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
+/**
+ * Kullanıcının konumunu dinleyip, harita üzerindeki marker, rota ve adımları yöneten
+ * ViewModel katmanıdır.
+ *
+ * Uygulamanın lifecycle'ına uygun olarak, kullanıcı konumunu sürekli olarak güncel
+ * tutar ve rota hesaplama, marker yönetimi gibi işlemleri koordine eder.
+ *
+ * @author Arda Yücesan
+ */
 class MapsViewModel(
     private val getUserLocationUseCase: GetUserLocationUseCase,
     private val getRoutesUseCase: GetRoutesUseCase
 ) : ViewModel() {
+
+    // Harita ekranının state yapısını temsil eder.
     private val _mapsState = MutableLiveData(MapsState())
     val mapsState: LiveData<MapsState> = _mapsState
 
-    private val locationObserver = Observer<Location> { location ->
+    private val _events = Channel<MapsEvent>()
+    val events = _events.receiveAsFlow()
 
-        println("got location in viewModel observer $location")
+    // Konum değişimlerini dinleyen observer.
+    private val locationObserver = Observer<Result<Location, GpsError>> { gpsResult ->
 
-        _mapsState.postValue(
-            _mapsState.value?.copy(userLocation = location.toUserLocation())
-        )
+        when (gpsResult) {
+            is Result.Error -> {
+                viewModelScope.launch {
+                    _events.send(MapsEvent.ShowError(gpsResult.error.message))
+                }
+            }
+
+            is Result.Success -> {
+                _mapsState.postValue(
+                    _mapsState.value?.copy(userLocation = gpsResult.data.toAppLocation())
+                )
+            }
+        }
     }
 
+    /**
+     * ViewModel'de kullanıcı aksiyonlarına göre ilgili işlevleri yönlendiren ana kontrol noktası.
+     * Kullanıcıdan gelen etkileşimleri (buton tıklamaları vb.) handle eder.
+     */
     fun onAction(action: MapsAction) {
         when (action) {
             is MapsAction.OnStartLocationTrackerClicked -> {
@@ -47,12 +73,6 @@ class MapsViewModel(
             is MapsAction.OnCreateRoute -> {
                 viewModelScope.launch {
                     getRoutes(action.destination)
-                }
-            }
-
-            is MapsAction.OnDecodedPathCreated -> {
-                viewModelScope.launch {
-//                    getUserLocation(action.route)
                 }
             }
 
@@ -71,13 +91,16 @@ class MapsViewModel(
         }
     }
 
-    private suspend fun getRoutes(destination: UserLocation) {
+    /**
+     * Belirtilen hedefe rota hesaplamak için use-case'i tetikler.
+     * Rota başarıyla dönerse state güncellenir.
+     */
+    private suspend fun getRoutes(destination: AppLocation) {
         _mapsState.value?.userLocation?.let { userLocation ->
-            val result = getRoutesUseCase(origin = userLocation, destination = destination)
-
-            when (result) {
+            when (val result = getRoutesUseCase(origin = userLocation, destination = destination)) {
                 is Result.Error -> {
                     Log.e("_MapsViewModel", "getRoutes:  ${result.error.message}")
+                    _events.send(MapsEvent.ShowError(result.error.message))
                 }
 
                 is Result.Success -> {
@@ -92,10 +115,12 @@ class MapsViewModel(
         }
     }
 
+    //Harita üzerindeki mevcut polyline bilgisini sıfırlar.
     private fun clearPolyline() {
         _mapsState.value = _mapsState.value?.copy(currentPolyline = null)
     }
 
+    //Haritada gösterilen adım markerlarını ve lokasyon listesini temizler.
     private fun clearMarkersAndLatLngs() {
         _mapsState.value?.stepMarker?.forEach { marker ->
             marker.remove()
@@ -105,70 +130,33 @@ class MapsViewModel(
             stepLatLng = emptyList(),
             stepMarker = emptyList()
         )
-        println("should be cleared")
     }
 
+    //Adımlar için yeni LatLng bilgisini mevcut state'e ekler.
     private fun addStepLatLngs(latLng: LatLng) {
         _mapsState.value?.let { currentState ->
-            println("should have added new latLn ${latLng}")
-            // Yeni step marker'ı mevcut listeye ekleyip yeni bir kopya oluşturuyoruz
             _mapsState.value = currentState.copy(stepLatLng = currentState.stepLatLng + latLng)
         }
     }
 
-    private fun addStepMarkers(marker: Marker) {
-        println("should have added new marker ${marker}")
 
+    //Adım markerlarını state'e ekler.
+    private fun addStepMarkers(marker: Marker) {
         _mapsState.value?.let { currentState ->
-            // Yeni step marker'ı mevcut listeye ekleyip yeni bir kopya oluşturuyoruz
+            // Yeni marker, mevcut listenin sonuna eklenir.
             _mapsState.value = currentState.copy(stepMarker = currentState.stepMarker + marker)
         }
     }
 
+    //Kullanıcı konumunu sürekli takip etmek için observer kaydı yapılır.
     private fun startLocationTracking() {
         getUserLocationUseCase().observeForever(locationObserver)
     }
 
+
+    //ViewModel yaşam döngüsü sona erdiğinde observer kaydı temizlenir.
     override fun onCleared() {
         super.onCleared()
-        println("observer removed viewmodel")
         getUserLocationUseCase().removeObserver(locationObserver)
     }
-
-//    private fun getUserLocation() {
-//        getUserLocationUseCase()
-//            .observeForever { location ->
-//                _mapsState.postValue(
-//                    _mapsState.value?.copy(userLocation = location)
-//                )
-//            }
-////        getUserLocationUseCase().collect { location ->
-////            location?.let {
-////                _mapsState.update {
-////                    it.copy(userLocation = location)
-////                }
-////            }
-////        }
-//        // millis under 30000 is unimportant
-////        getUserLocationUseCase(5000)
-////            .collect { locationResult ->
-////                when (locationResult) {
-////                    is Result.Error -> TODO()
-////                    is Result.Success -> {
-////                        // used postValue for updating LiveData from co routine
-////                        println("location updated ${locationResult.data.latitude}")
-////                        _mapsState.postValue(_mapsState.value?.copy(userLocation = locationResult.data))
-//////                        _mapsState.value =
-//////                            _mapsState.value!!.copy(userLocation = locationResult.data)
-////
-////                    }
-////                }
-////            }
-//
-//    }
-//
-//    override fun onCleared() {
-//        super.onCleared()
-//        locationRepository.locationLiveData.removeObserver { } // Optional temizleme
-//    }
 }
