@@ -6,27 +6,26 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowInsetsController
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.databinding.ActivityMapsBinding
+import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class MapsActivity : AppCompatActivity() {
 
-//    private val mapsViewModel: MapsViewModel by viewModel()
-
     private val mapsViewModel: MapsViewModel by viewModel<MapsViewModel>()
 
     private lateinit var binding: ActivityMapsBinding
+    private val REQUEST_LOCATION_PERMISSION = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +46,6 @@ class MapsActivity : AppCompatActivity() {
                 )
                 window.statusBarColor = ContextCompat.getColor(this, R.color.marti_primary)
             }
-
         }
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -56,11 +54,23 @@ class MapsActivity : AppCompatActivity() {
             insets
         }
 
-//        mapsViewModel.updateTest()
-
         mapsViewModel.mapsState.observe(this) {
             binding.textView.text = it.userLocation?.latitude?.toString() ?: "No latitude available"
             binding.resetRoute.isEnabled = it.currentPolyline != null
+        }
+
+        lifecycleScope.launch {
+            mapsViewModel.events.collect { event ->
+                when (event) {
+                    is MapsEvent.ShowError -> {
+                        Toast.makeText(
+                            this@MapsActivity,
+                            event.message,
+                            Toast.LENGTH_SHORT
+                        )
+                    }
+                }
+            }
         }
 
         Intent(applicationContext, LocationService::class.java).apply {
@@ -102,19 +112,12 @@ class MapsActivity : AppCompatActivity() {
 
         checkLocationPermission()
 
-//        Intent(applicationContext, LocationService::class.java).apply {
-//            action = LocationService.ACTION_START
-//            startService(this)
-//        }
-
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
                 .replace(R.id.map_fragment, MapsFragment())
                 .commit()
         }
     }
-
-    private val REQUEST_LOCATION_PERMISSION = 1
 
     private fun checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(
