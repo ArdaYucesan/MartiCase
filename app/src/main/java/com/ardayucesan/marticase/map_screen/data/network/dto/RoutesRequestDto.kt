@@ -3,6 +3,7 @@ package com.ardayucesan.marticase.map_screen.data.network.dto
 import com.ardayucesan.marticase.map_screen.core.Constants
 import kotlinx.serialization.Serializable
 
+//RouteRepository üzerinden yapılacak post api çağrısı için body data transfer objesi
 @Serializable
 data class RouteRequestDto(
     val origin: LocationWrapper,

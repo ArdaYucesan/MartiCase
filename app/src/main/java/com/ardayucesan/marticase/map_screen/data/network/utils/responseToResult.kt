@@ -7,6 +7,7 @@ import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 
+//Api işlemi sonucu dönen http status koduna göre sonucu mapleyen yardımcı fonksiyon
 suspend inline fun <reified T> responseToResult(response: HttpResponse): Result<T, NetworkError> {
     return when (response.status.value) {
         in 200..299 -> {

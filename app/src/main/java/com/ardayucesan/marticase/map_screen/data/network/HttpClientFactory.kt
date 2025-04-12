@@ -15,10 +15,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
 import io.ktor.http.ContentType.Application.Json
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -33,6 +30,7 @@ object HttpClientFactory {
                     logger = Logger.ANDROID
                 }
             }
+            //gelen verinin jsondan direkt olarak kotlin data class'a çevrilmesini sağlar
             install(ContentNegotiation) {
                 json(
                     json = Json {
@@ -40,15 +38,9 @@ object HttpClientFactory {
                     },
                 )
             }
-//            install(HttpTimeout) {
-//                requestTimeoutMillis = 20_000 // İsteğin sonsuz süre beklemesini sağlar
-//                connectTimeoutMillis = 15_000 // Bağlantı için maksimum bekleme süresi (60 saniye)
-//                socketTimeoutMillis = 15_000
-//            }
             install(DefaultRequest) {
                 header("accept", "application/json")
                 contentType(Json.withParameter("charset", "utf-8"))
-//                header("authorization", "Bearer sk-618fa212823d4b81994d00e77007d453")
             }
             defaultRequest {
                 contentType(Json)

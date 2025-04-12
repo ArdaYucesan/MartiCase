@@ -9,7 +9,6 @@ import com.ardayucesan.marticase.map_screen.domain.repository.RoutesRepository
 import com.ardayucesan.marticase.map_screen.domain.utils.NetworkError
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 import io.ktor.client.HttpClient
-import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -17,6 +16,7 @@ import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 
+//RoutesRepository arayüzünü implemente eden gerçek repository implementasyonu
 class RoutesRepositoryImpl(
     private val httpClient: HttpClient
 ) : RoutesRepository {
