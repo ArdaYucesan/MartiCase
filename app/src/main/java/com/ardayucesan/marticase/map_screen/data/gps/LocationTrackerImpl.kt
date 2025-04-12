@@ -28,6 +28,7 @@ class LocationTrackerImpl(
         interval: Long
     ): Flow<Result<Location, GpsError>> {
 
+        //callbackFlow , aslında flow ile çok benzer fakat callback tabanlı veriler için daha uygun , emit() suspend fonksiyonu olduğu için direkt callback içinde kullanamazdım callbackFlow bu avantajı saüğlıyor
         return callbackFlow {
             if (!context.hasLocationPermission()) {
                 launch { send(Result.Error(GpsError.MissingLocationPermission("Missing location permission"))) }
@@ -42,6 +43,7 @@ class LocationTrackerImpl(
             if (!isGpsEnabled) {
                 launch { send(Result.Error(GpsError.GpsDisabled("Gps is disabled"))) }
             }
+
             if (!isNetworkEnabled) {
                 launch { send(Result.Error(GpsError.NetworkDisabled("Network is disabled"))) }
             }
@@ -55,7 +57,7 @@ class LocationTrackerImpl(
                 override fun onLocationResult(result: LocationResult) {
                     super.onLocationResult(result)
                     result.locations.lastOrNull()?.let { location ->
-                        //send callback as flow
+                        //callbackten gelen veriyi callBackFlow sayesinde uyumlu hale
                         launch { send(Result.Success(location)) }
                     }
                 }
@@ -65,7 +67,7 @@ class LocationTrackerImpl(
                 request, locationCallback, Looper.getMainLooper()
             )
 
-            //when launched co routine closed remove the location updates as well
+            //bağlı olan co routine kapandığında callbacki silip işlem tamamlanır
             awaitClose {
                 client.removeLocationUpdates(locationCallback)
             }

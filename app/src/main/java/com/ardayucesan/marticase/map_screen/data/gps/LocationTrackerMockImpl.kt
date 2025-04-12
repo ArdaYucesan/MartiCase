@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 
+//Öncedenb belirlenmiş bir List<LatLng> listesini mock olarak ekleyerek mock gps sinyalleri yollar
+//Bu sınıf kullanılacaksa uygulama developer options üzerinden sahte gps uygulaması olarak seçilmelidir.
 class LocationTrackerMockImpl(
     private val context: Context, private val client: FusedLocationProviderClient
 ) : LocationTracker {

@@ -7,6 +7,7 @@ import com.ardayucesan.marticase.map_screen.domain.repository.LocationRepository
 import com.ardayucesan.marticase.map_screen.domain.utils.GpsError
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 
+//Lokasyon verisinin güncellenmesini ve iletilmesini sağlar
 class LocationRepositoryImpl : LocationRepository {
 
     private val _locationLiveData = MutableLiveData<Result<Location, GpsError>>()
