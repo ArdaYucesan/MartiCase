@@ -4,7 +4,6 @@ import com.ardayucesan.marticase.map_screen.data.network.dto.Polyline
 import com.ardayucesan.marticase.map_screen.data.network.dto.RouteRequestDto
 import com.ardayucesan.marticase.map_screen.domain.AppLocation
 import com.ardayucesan.marticase.map_screen.domain.repository.RoutesRepository
-import com.ardayucesan.marticase.map_screen.domain.toLocationWrapper
 import com.ardayucesan.marticase.map_screen.domain.utils.NetworkError
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 

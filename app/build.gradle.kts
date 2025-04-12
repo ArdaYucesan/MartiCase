@@ -67,10 +67,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.material.v190)
 
-    // Fragment içinden viewModels() kullanabilmek için
     implementation(libs.androidx.fragment.ktx)
 
-    // (Opsiyonel ama tavsiye edilir) LiveData kullanıyorsan:
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.bundles.koin)
 
@@ -81,6 +79,4 @@ dependencies {
 
     implementation(libs.android.maps.utils)
 
-//    implementation(libs.lifecycle.extensions)
-//    implementation(libs.design)
 }

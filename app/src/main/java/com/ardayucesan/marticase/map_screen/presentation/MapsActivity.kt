@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.Bundle
 import android.view.WindowInsetsController
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -22,6 +21,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MapsActivity : AppCompatActivity() {
 
+    //mapsViewModel koin ile inject edildi ,Singleton olarak inject edildiği için MapsFragment ile aynı viewModel instance'ı kullanmış olduk
     private val mapsViewModel: MapsViewModel by viewModel<MapsViewModel>()
 
     private lateinit var binding: ActivityMapsBinding
@@ -29,7 +29,7 @@ class MapsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+//        enableEdgeToEdge()
 
         binding = ActivityMapsBinding.inflate(layoutInflater)
 
@@ -54,10 +54,28 @@ class MapsActivity : AppCompatActivity() {
             insets
         }
 
-        mapsViewModel.mapsState.observe(this) {
-            binding.textView.text = it.userLocation?.latitude?.toString() ?: "No latitude available"
-            binding.resetRoute.isEnabled = it.currentPolyline != null
+        checkLocationPermission()
+
+
+        binding.startService.setOnClickListener {
+            if (binding.startService.text == "Servis Başlat") {
+                startLocationService()
+            } else {
+                stopLocationService()
+            }
         }
+
+        binding.resetRoute.setOnClickListener {
+            mapsViewModel.onAction(MapsAction.OnResetPolyline)
+        }
+
+        binding.clearMarkers.setOnClickListener {
+            mapsViewModel.onAction(MapsAction.OnClearMarkersAndLatLngs)
+        }
+
+//        binding.currentLocationFab.setOnClickListener {
+//            mapsViewModel.onAction(MapsAction.OnFocusCurrentLocation)
+//        }
 
         lifecycleScope.launch {
             mapsViewModel.events.collect { event ->
@@ -73,44 +91,10 @@ class MapsActivity : AppCompatActivity() {
             }
         }
 
-        Intent(applicationContext, LocationService::class.java).apply {
-            action = LocationService.ACTION_START
-            startService(this)
+        mapsViewModel.mapsState.observe(this) {
+            binding.textView.text = it.userLocation?.latitude?.toString() ?: "No latitude available"
+            binding.resetRoute.isEnabled = it.currentPolyline != null
         }
-
-        binding.startService.setOnClickListener {
-            if (binding.startService.text == "Servis Başlat") {
-                Intent(applicationContext, LocationService::class.java).apply {
-                    action = LocationService.ACTION_START
-                    startService(this)
-                }
-                binding.startService.text = "Servis Durdur"
-                binding.startService.backgroundTintList = ContextCompat.getColorStateList(
-                    this,
-                    R.color.marti_accent
-                )
-            } else {
-                Intent(applicationContext, LocationService::class.java).apply {
-                    action = LocationService.ACTION_STOP
-                    stopService(this)
-                }
-                binding.startService.backgroundTintList = ContextCompat.getColorStateList(
-                    this,
-                    R.color.marti_primary
-                )
-                binding.startService.text = "Servis Başlat"
-            }
-        }
-
-        binding.resetRoute.setOnClickListener {
-            mapsViewModel.onAction(MapsAction.OnResetPolyline)
-        }
-
-        binding.clearMarkers.setOnClickListener {
-            mapsViewModel.onAction(MapsAction.OnClearMarkersAndLatLngs)
-        }
-
-        checkLocationPermission()
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
@@ -119,6 +103,31 @@ class MapsActivity : AppCompatActivity() {
         }
     }
 
+    private fun startLocationService() {
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_START
+            startService(this)
+        }
+        binding.startService.text = "Servis Durdur"
+        binding.startService.backgroundTintList = ContextCompat.getColorStateList(
+            this,
+            R.color.marti_accent
+        )
+    }
+
+    private fun stopLocationService() {
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_STOP
+            stopService(this)
+        }
+        binding.startService.backgroundTintList = ContextCompat.getColorStateList(
+            this,
+            R.color.marti_primary
+        )
+        binding.startService.text = "Servis Başlat"
+    }
+
+    //Eğer izin halihazırda verilmişse tekrar sormadan viewModela
     private fun checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -131,18 +140,20 @@ class MapsActivity : AppCompatActivity() {
                 REQUEST_LOCATION_PERMISSION
             )
         } else {
-            // i didnt call viewModel.getUserLocation instead created an action
-            mapsViewModel.onAction(MapsAction.OnStartLocationTrackerClicked)
+            startLocationService()
+            mapsViewModel.onAction(MapsAction.OnStartLocationTracking)
         }
     }
 
+    //İzin diyaloğunun verilen cevaba göre LocationService başlatılır
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_LOCATION_PERMISSION) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mapsViewModel.onAction(MapsAction.OnStartLocationTrackerClicked)
+                startLocationService()
+                mapsViewModel.onAction(MapsAction.OnStartLocationTracking)
             } else {
                 Toast.makeText(this, "Konum izni reddedildi", Toast.LENGTH_SHORT).show()
             }

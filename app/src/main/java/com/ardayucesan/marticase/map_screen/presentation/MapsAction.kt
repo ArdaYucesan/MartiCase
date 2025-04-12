@@ -5,9 +5,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 
 sealed interface MapsAction {
-    data object OnStartLocationTrackerClicked :
+    data object OnStartLocationTracking :
         MapsAction
-
 
     data class OnCreateRoute(
         val destination: AppLocation,
@@ -18,7 +17,4 @@ sealed interface MapsAction {
     data object OnResetPolyline : MapsAction
 
     data object OnClearMarkersAndLatLngs : MapsAction
-
-//    data class OnMarkerRestore(val latLng: LatLng, val marker: Marker) : MapsAction
-
 }

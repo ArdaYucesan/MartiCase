@@ -9,22 +9,37 @@ data class AppLocation(
     val latitude: Double,
     val longitude: Double,
     val timestamp: Long
-)
+) {
+    fun toLatLng(): LatLng {
+        return LatLng(latitude, longitude)
+    }
 
-fun AppLocation.toLatLng(): LatLng {
-    return LatLng(
-        this.latitude,
-        this.longitude,
-    )
-}
-
-fun AppLocation.toLocationWrapper(): LocationWrapper {
-    return LocationWrapper(
-        location = LatLngWrapper(
-            latLng = LatLngDto(
-                latitude = this.latitude,
-                longitude = this.longitude
+    fun toLocationWrapper(): LocationWrapper {
+        return LocationWrapper(
+            location = LatLngWrapper(
+                latLng = LatLngDto(
+                    latitude = this.latitude,
+                    longitude = this.longitude
+                )
             )
         )
-    )
+    }
 }
+
+//fun AppLocation.toLatLng(): LatLng {
+//    return LatLng(
+//        this.latitude,
+//        this.longitude,
+//    )
+//}
+
+//fun AppLocation.toLocationWrapper(): LocationWrapper {
+//    return LocationWrapper(
+//        location = LatLngWrapper(
+//            latLng = LatLngDto(
+//                latitude = this.latitude,
+//                longitude = this.longitude
+//            )
+//        )
+//    )
+//}

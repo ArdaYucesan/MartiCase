@@ -64,7 +64,7 @@ class MapsViewModel(
      */
     fun onAction(action: MapsAction) {
         when (action) {
-            is MapsAction.OnStartLocationTrackerClicked -> {
+            is MapsAction.OnStartLocationTracking -> {
                 viewModelScope.launch {
                     startLocationTracking()
                 }
