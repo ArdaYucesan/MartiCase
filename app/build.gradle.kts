@@ -8,7 +8,6 @@ plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
-
 android {
     namespace = "com.ardayucesan.marticase"
     compileSdk = 35
@@ -65,7 +64,6 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.material.v190)
 
     implementation(libs.androidx.fragment.ktx)
 

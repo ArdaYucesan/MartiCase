@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.databinding.FragmentMapsBinding
@@ -47,13 +48,13 @@ class MapsFragment : Fragment() {
 
     private val zoom: Float = 15f
 
+    private var mapsStateObserver: Observer<MapsState>? = null
+
     // Harita hazır olduğunda çalışacak callback
     @SuppressLint("MissingPermission")
     private val callback = OnMapReadyCallback { googleMap ->
 
-        // ViewModel'deki tetiklenen state değişimleri izleniyor
-        mapsViewModel.mapsState.observeForever { mapsState ->
-
+        mapsStateObserver = Observer<MapsState> { mapsState ->
             // Eğer polyline bilgisi varsa haritada çizilir
             mapsState.currentPolyline?.encodedPolyline.let { encodedPolyline ->
                 handlePolyline(googleMap, encodedPolyline)
@@ -82,6 +83,11 @@ class MapsFragment : Fragment() {
             }
         }
 
+        // ViewModel'deki tetiklenen state değişimleri izleniyor
+        mapsStateObserver?.let { observer ->
+            mapsViewModel.mapsState.observeForever(observer)
+        }
+
         // Haritada herhangi bir yere tıklanınca hedef marker oluştur
         googleMap.setOnMapClickListener { latLng ->
             createDestinationMarker(googleMap, latLng)
@@ -105,6 +111,14 @@ class MapsFragment : Fragment() {
         geocoder = Geocoder(requireContext(), Locale.getDefault())
 
         mapFragment?.getMapAsync(callback)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // observeForever çağrısı
+        mapsStateObserver?.let { observer ->
+            mapsViewModel.mapsState.removeObserver(observer)
+        }
     }
 
     // İki nokta arasındaki mesafeyi hesaplayıp, 100 metreyi geçerse yeni bir step marker'ı oluşturur

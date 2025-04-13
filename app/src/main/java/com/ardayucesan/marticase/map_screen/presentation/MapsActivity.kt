@@ -61,7 +61,6 @@ class MapsActivity : AppCompatActivity() {
 
             when (data) {
                 LocationService.ACTION_STOP -> {
-                    println("service stopped")
                     binding.startService.text = "Servis Başlat"
                     binding.startService.backgroundTintList = ContextCompat.getColorStateList(
                         this@MapsActivity,
@@ -70,7 +69,6 @@ class MapsActivity : AppCompatActivity() {
                 }
 
                 LocationService.ACTION_START -> {
-                    println("service started")
                     binding.startService.text = "Servis Durdur"
                     binding.startService.backgroundTintList = ContextCompat.getColorStateList(
                         this@MapsActivity,
