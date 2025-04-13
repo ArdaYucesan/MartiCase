@@ -23,7 +23,7 @@ Bu Android uygulaması, Google Maps ve Routes API kullanarak gerçek zamanlı ko
 - **View Binding:** Görünüm erişimi için
 
 ## Not
-- ** Uygulamanın kullanılabilmesi için Google Cloud Api Key gereklidir , Api key olmadığı durumda Routes API network çağrısı normal şekilde hata mesajı gösterir fakat GoogleMap Fragment davranışı için edge case testi yapılmadı**
+- **Uygulamanın kullanılabilmesi için Google Cloud Api Key gereklidir , Api key olmadığı durumda Routes API network çağrısı normal şekilde hata mesajı gösterir fakat GoogleMap Fragment davranışı için edge case testi yapılmadı**
 
 ## Proje Yapısı
 ```plaintext
