@@ -9,7 +9,7 @@ Bu Android uygulaması, Google Maps ve Routes API kullanarak gerçek zamanlı ko
 - Rota hesaplama ve görüntüleme
 - Android Service ile uygulama ön plan ve arka planda lokasyon takibi
 - Mesafe bazlı yol noktası işaretçileri (her 100m'de bir)
-- Adres gösterimi için ters geocoding
+- Adres gösterimi için geocoding
 
 ## Teknik Detaylar
 - **Mimari:** MVVM + MVI Hybrid ve Clean Architecture
