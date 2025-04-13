@@ -34,20 +34,6 @@ class LocationTrackerImpl(
                 launch { send(Result.Error(GpsError.MissingLocationPermission("Missing location permission"))) }
             }
 
-            val locationManager =
-                context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-            val isNetworkEnabled =
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-
-            if (!isGpsEnabled) {
-                launch { send(Result.Error(GpsError.GpsDisabled("Gps is disabled"))) }
-            }
-
-            if (!isNetworkEnabled) {
-                launch { send(Result.Error(GpsError.NetworkDisabled("Network is disabled"))) }
-            }
-
             val request = LocationRequest.Builder(500).apply {
                 setPriority(Priority.PRIORITY_HIGH_ACCURACY)
                 setMinUpdateIntervalMillis(500)
@@ -56,6 +42,7 @@ class LocationTrackerImpl(
             val locationCallback = object : LocationCallback() {
                 override fun onLocationResult(result: LocationResult) {
                     super.onLocationResult(result)
+
                     result.locations.lastOrNull()?.let { location ->
                         //callbackten gelen veriyi callBackFlow sayesinde uyumlu hale
                         launch { send(Result.Success(location)) }

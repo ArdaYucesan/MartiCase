@@ -1,10 +1,20 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
 import android.Manifest
+import android.app.AlertDialog
+import android.app.usage.NetworkStatsManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.WindowInsetsController
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,7 +25,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.databinding.ActivityMapsBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 /**
@@ -42,6 +54,33 @@ class MapsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMapsBinding
     private val REQUEST_LOCATION_PERMISSION = 1
+
+    private val serviceReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+
+            val data = intent?.getStringExtra("status")
+
+            when (data) {
+                LocationService.ACTION_STOP -> {
+                    println("service stopped")
+                    binding.startService.text = "Servis Başlat"
+                    binding.startService.backgroundTintList = ContextCompat.getColorStateList(
+                        this@MapsActivity,
+                        R.color.marti_primary
+                    )
+                }
+
+                LocationService.ACTION_START -> {
+                    println("service started")
+                    binding.startService.text = "Servis Durdur"
+                    binding.startService.backgroundTintList = ContextCompat.getColorStateList(
+                        this@MapsActivity,
+                        R.color.marti_accent
+                    )
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,11 +109,11 @@ class MapsActivity : AppCompatActivity() {
             insets
         }
 
-        checkLocationPermission()
+        checkRequirementsAndStartService()
 
         binding.startService.setOnClickListener {
             if (binding.startService.text == "Servis Başlat") {
-                startLocationService()
+                checkRequirementsAndStartService()
             } else {
                 stopLocationService()
             }
@@ -91,21 +130,36 @@ class MapsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             mapsViewModel.events.collect { event ->
                 when (event) {
-                    is MapsEvent.ShowError -> {
-                        Toast.makeText(
-                            this@MapsActivity,
-                            event.message,
-                            Toast.LENGTH_SHORT
-                        )
+                    is MapsEvent.ShowErrorToast -> {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                this@MapsActivity,
+                                event.message,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
+
+                    MapsEvent.ShowGpsDisabledDialog -> {
+                        stopLocationService()
+                        showGpsDisabledDialog()
+                    }
+
+                    MapsEvent.ShowNetworkDisabledDialog -> showNetworkDisabledDialog()
+                    MapsEvent.RequestLocationPermission -> checkLocationPermission()
                 }
             }
         }
 
         mapsViewModel.mapsState.observe(this) {
-            binding.textView.text = it.userLocation?.latitude?.toString() ?: "No latitude available"
             binding.resetRoute.isEnabled = it.currentPolyline != null
         }
+
+        val filter = IntentFilter("com.ardayucesan.marticase")
+        @Suppress("UnspecifiedRegisterReceiverFlag")
+        registerReceiver(
+            serviceReceiver, filter,
+        )
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
@@ -114,17 +168,88 @@ class MapsActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        println("on resumed")
+
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//            val filter = IntentFilter("com.ardayucesan.marticase")
+//
+//            registerReceiver(
+//                serviceReceiver,
+//                filter,
+//                Context.RECEIVER_NOT_EXPORTED
+//            )
+//        } else {
+//            val filter = IntentFilter("com.ardayucesan.marticase")
+//            @Suppress("UnspecifiedRegisterReceiverFlag")
+//            registerReceiver(
+//                serviceReceiver, filter,
+//            )
+//        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(serviceReceiver)
+    }
+
+    private fun checkRequirementsAndStartService() {
+        when {
+            !isGpsEnabled() -> {
+                println("gps is disabled")
+                showGpsDisabledDialog()
+            }
+
+            !isNetworkEnabled() -> {
+                println("network is disabled")
+                showNetworkDisabledDialog()
+            }
+
+            else -> {
+                checkLocationPermission()
+            }
+        }
+    }
+
+    private fun showGpsDisabledDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("GPS Kapalı")
+            .setMessage("Konum servisini açmak ister misiniz?")
+            .setPositiveButton("Ayarlar") { _, _ ->
+                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivity(intent)
+            }
+            .setNegativeButton("İptal", { dialog, _ ->
+//                finish()
+            })
+            .setCancelable(false)
+            .create()
+            .show()
+    }
+
+    private fun showNetworkDisabledDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("İnternet Bağlantısı")
+            .setMessage("İnternet bağlantınızı kontrol etmek ister misiniz?")
+            .setPositiveButton("Ayarlar") { _, _ ->
+                val intent = Intent(Settings.ACTION_WIFI_SETTINGS) // Wi-Fi ayarlarına gitmek için
+                startActivity(intent)
+            }
+            .setNegativeButton("İptal", { dialog, _ ->
+//                finish()
+            })
+            .setCancelable(false)
+            .create()
+            .show()
+    }
+
     // Lokasyon takibinin önplan ve arkaplanda çalışmasını sağlayan lokasyon servisini açar
     private fun startLocationService() {
         Intent(applicationContext, LocationService::class.java).apply {
             action = LocationService.ACTION_START
             startService(this)
         }
-        binding.startService.text = "Servis Durdur"
-        binding.startService.backgroundTintList = ContextCompat.getColorStateList(
-            this,
-            R.color.marti_accent
-        )
     }
 
     // Lokasyon takibinin önplan ve arkaplanda çalışmasını sağlayan lokasyon servisini kapatır
@@ -133,11 +258,24 @@ class MapsActivity : AppCompatActivity() {
             action = LocationService.ACTION_STOP
             stopService(this)
         }
-        binding.startService.backgroundTintList = ContextCompat.getColorStateList(
-            this,
-            R.color.marti_primary
-        )
-        binding.startService.text = "Servis Başlat"
+    }
+
+    private fun isGpsEnabled(): Boolean {
+        val locationManager =
+            this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        return isGpsEnabled
+    }
+
+    private fun isNetworkEnabled(): Boolean {
+        val connectivityManager =
+            getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        // API 23 (Android 6.0) ve sonrası için NetworkCapabilities kullanarak bağlantıyı kontrol et
+        val network = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(network)
+
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false
     }
 
     //Eğer izin halihazırda verilmişse tekrar sormadan viewModela

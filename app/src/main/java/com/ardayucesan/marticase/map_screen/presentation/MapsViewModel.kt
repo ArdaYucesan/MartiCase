@@ -1,7 +1,6 @@
 package com.ardayucesan.marticase.map_screen.presentation
 
 import android.location.Location
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
@@ -32,7 +31,6 @@ class MapsViewModel(
     private val getUserLocationUseCase: GetUserLocationUseCase,
     private val getRoutesUseCase: GetRoutesUseCase
 ) : ViewModel() {
-
     // Harita ekranının state yapısını temsil eder.
     private val _mapsState = MutableLiveData(MapsState())
     val mapsState: LiveData<MapsState> = _mapsState
@@ -47,11 +45,22 @@ class MapsViewModel(
         when (gpsResult) {
             is Result.Error -> {
                 viewModelScope.launch {
-                    _events.send(MapsEvent.ShowError(gpsResult.error.message))
+                    println("teest error coming to viewModel ${gpsResult.error.message} ")
+                    when (gpsResult.error) {
+                        is GpsError.GpsDisabled -> _events.send(MapsEvent.ShowGpsDisabledDialog)
+                        is GpsError.MissingLocationPermission -> _events.send(MapsEvent.RequestLocationPermission)
+                        is GpsError.NetworkDisabled -> _events.send(MapsEvent.ShowNetworkDisabledDialog)
+                        is GpsError.UnknownException -> _events.send(
+                            MapsEvent.ShowErrorToast(
+                                gpsResult.error.message
+                            )
+                        )
+                    }
                 }
             }
 
             is Result.Success -> {
+                println("teest location in viewModel ${gpsResult.data.toAppLocation()}")
                 _mapsState.postValue(
                     _mapsState.value?.copy(userLocation = gpsResult.data.toAppLocation())
                 )
@@ -100,12 +109,11 @@ class MapsViewModel(
         _mapsState.value?.userLocation?.let { userLocation ->
             when (val result = getRoutesUseCase(origin = userLocation, destination = destination)) {
                 is Result.Error -> {
-                    Log.e("_MapsViewModel", "getRoutes:  ${result.error.message}")
-                    _events.send(MapsEvent.ShowError(result.error.message))
+                    println("api error")
+                    _events.send(MapsEvent.ShowErrorToast(result.error.message))
                 }
 
                 is Result.Success -> {
-                    println("polyline -> ${result.data.encodedPolyline}")
                     _mapsState.postValue(
                         _mapsState.value?.copy(
                             currentPolyline = result.data,

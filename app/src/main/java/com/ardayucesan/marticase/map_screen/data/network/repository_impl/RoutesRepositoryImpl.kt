@@ -20,6 +20,7 @@ import io.ktor.http.HttpHeaders
 class RoutesRepositoryImpl(
     private val httpClient: HttpClient
 ) : RoutesRepository {
+
     override suspend fun getRoutes(
         routesRequestDto: RouteRequestDto
     ): Result<RoutesResponseDto, NetworkError> {

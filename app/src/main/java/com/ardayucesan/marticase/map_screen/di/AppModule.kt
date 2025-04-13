@@ -28,17 +28,13 @@ val appModule = module {
     single {
         LocationServices.getFusedLocationProviderClient(androidContext())
     }
+
     single {
         LocationTrackerImpl(
             context = androidContext(),
             client = get()
         )
     } bind LocationTracker::class
-//    single {
-//        LocationTrackerMockImpl(
-//            context = androidContext(),
-//            client = get()
-//        )
 
     single { LocationRepositoryImpl() } bind LocationRepository::class
     single { RoutesRepositoryImpl(httpClient = get()) } bind RoutesRepository::class

@@ -26,7 +26,6 @@ suspend inline fun <reified T> responseToResult(response: HttpResponse): Result<
         in 400..499 -> {
             try {
 //                val message = response.body<MachbeeApiError>().message
-
                 if (response.status.value == 400) {
                     return Result.Error(NetworkError.BadRequest("Bad request"))
                 } else if (response.status.value == 401) {
@@ -44,7 +43,7 @@ suspend inline fun <reified T> responseToResult(response: HttpResponse): Result<
             }
         }
 
-        in 500..599 -> Result.Error(NetworkError.ServerError("500 Internal Server Error"))
+        in 500..599 -> Result.Error(NetworkError.ServerError("500 Internal Server ShowErrorToast"))
         else -> Result.Error(NetworkError.Unknown("Unknown error occurred"))
     }
 }

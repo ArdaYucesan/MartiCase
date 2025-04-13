@@ -5,11 +5,12 @@ import android.graphics.Color
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
-import androidx.fragment.app.Fragment
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.ardayucesan.marticase.R
 import com.ardayucesan.marticase.databinding.FragmentMapsBinding
 import com.ardayucesan.marticase.map_screen.domain.AppLocation
@@ -20,7 +21,11 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.maps.android.PolyUtil
 import com.google.maps.android.SphericalUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import java.io.IOException
 import java.util.Locale
 
 class MapsFragment : Fragment() {
@@ -40,15 +45,17 @@ class MapsFragment : Fragment() {
     // Adres çözümlemek için geocoder
     private lateinit var geocoder: Geocoder
 
-    private val zoom: Float = 17f
-
+    private val zoom: Float = 15f
 
     // Harita hazır olduğunda çalışacak callback
     @SuppressLint("MissingPermission")
     private val callback = OnMapReadyCallback { googleMap ->
-        googleMap.isMyLocationEnabled = true
-        googleMap.uiSettings.isMyLocationButtonEnabled = true
-        googleMap.uiSettings.isMapToolbarEnabled = true
+
+        //myLocation android emülatöründe buglı çalıştığı için userMarker kullandım
+//        if (requireContext().hasLocationPermission()) {
+//            googleMap.isMyLocationEnabled = true
+//        }
+//        googleMap.uiSettings.isMyLocationButtonEnabled = true
 
         // ViewModel'deki tetiklenen state değişimleri izleniyor
         mapsViewModel.mapsState.observeForever { mapsState ->
@@ -63,14 +70,20 @@ class MapsFragment : Fragment() {
                 LatLng(location.latitude, location.longitude)
             }
 
+            println("teest fragment latLng $currentLatLng")
+
+
             currentLatLng?.let { latLng ->
+                if (userMarker == null) {
+                    createUserMarker(googleMap, latLng)
+                }
                 // Eğer step marker listeleri boşsa başlangıç marker'ını oluşturulur / İşaretler temizlenirse tekrar oluşturulur
                 if (mapsState.stepLatLng.isEmpty() && mapsState.stepMarker.isEmpty()) {
+                    println("teest added starting marker")
                     createStartingMarker(googleMap, latLng)
                 }
-
                 // Mevcut konuma göre kullanıcı marker güncellenir
-                updateMapCamera(googleMap, latLng)
+                updateMapCamera(googleMap, latLng, userMarker)
 
                 // 100 metrede bir step marker ekler
                 calculateStep(googleMap, mapsState.stepLatLng.lastOrNull(), latLng)
@@ -114,8 +127,8 @@ class MapsFragment : Fragment() {
     }
 
     // Kullanıcı marker'ını günceller ve harita kamerasını hareket ettirir
-    private fun updateMapCamera(googleMap: GoogleMap, latLng: LatLng) {
-//        userMarker?.position = latLng
+    private fun updateMapCamera(googleMap: GoogleMap, latLng: LatLng, userMarker: Marker?) {
+        userMarker?.position = latLng
         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
     }
 
@@ -123,8 +136,10 @@ class MapsFragment : Fragment() {
     // GoogleMap myLocation enable edildikten sonra kullanılmasına gerek kalmadı , özelleştirme yapılmak istenirse aktif edilir
     private fun createUserMarker(googleMap: GoogleMap, latLng: LatLng) {
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
+
         userMarker = googleMap.addMarker(
-            MarkerOptions().position(latLng).title("Marker in User")
+            MarkerOptions().position(latLng)
+                .title("User")
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
         )
     }
@@ -143,7 +158,7 @@ class MapsFragment : Fragment() {
 
     // Hedef konumu haritada işaretler ve rota hesaplaması için ViewModel'e bildirir
     private fun createDestinationMarker(googleMap: GoogleMap, latLng: LatLng) {
-        println("Tıklanan konum: Lat=${latLng.latitude}, Lng=${latLng.longitude}")
+//        println("Tıklanan konum: Lat=${latLng.latitude}, Lng=${latLng.longitude}")
         destinationMarker?.remove()
         destinationMarker = googleMap.addMarker(
             MarkerOptions()
@@ -209,13 +224,27 @@ class MapsFragment : Fragment() {
                 }
             )
         } else {
-            val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
-            val addressTitle = addresses?.firstOrNull()?.getAddressLine(0) ?: notFoundTitle
-            val marker = googleMap.addMarker(
-                MarkerOptions().position(latLng).title(addressTitle)
-                    .icon(BitmapDescriptorFactory.defaultMarker(markerHue))
-            )
-            onMarkerAdded(marker)
+
+            //bulamadığım durumlarda geocoder.getFromLocation() tekrardan test edebilecek ortam oluşturamadığım IOException grpc failed hatası veriyor
+            lifecycleScope.launch(Dispatchers.IO) {
+
+                val addressTitle = try {
+                    val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+                    addresses?.firstOrNull()?.getAddressLine(0) ?: "Adres bulunamadı"
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    "Adres alınamadı"
+                }
+
+                withContext(Dispatchers.Main) {
+                    // Marker ekleme işlemi
+                    val marker = googleMap.addMarker(
+                        MarkerOptions().position(latLng).title(addressTitle)
+                            .icon(BitmapDescriptorFactory.defaultMarker(markerHue))
+                    )
+                    onMarkerAdded(marker) // onMarkerAdded'ı burada tetikliyorsun
+                }
+            }
         }
     }
 
