@@ -51,12 +51,6 @@ class MapsFragment : Fragment() {
     @SuppressLint("MissingPermission")
     private val callback = OnMapReadyCallback { googleMap ->
 
-        //myLocation android emülatöründe buglı çalıştığı için userMarker kullandım
-//        if (requireContext().hasLocationPermission()) {
-//            googleMap.isMyLocationEnabled = true
-//        }
-//        googleMap.uiSettings.isMyLocationButtonEnabled = true
-
         // ViewModel'deki tetiklenen state değişimleri izleniyor
         mapsViewModel.mapsState.observeForever { mapsState ->
 
@@ -70,16 +64,14 @@ class MapsFragment : Fragment() {
                 LatLng(location.latitude, location.longitude)
             }
 
-            println("teest fragment latLng $currentLatLng")
-
-
             currentLatLng?.let { latLng ->
+
+                //eğer userMarker yoksa oluşturulur
                 if (userMarker == null) {
                     createUserMarker(googleMap, latLng)
                 }
-                // Eğer step marker listeleri boşsa başlangıç marker'ını oluşturulur / İşaretler temizlenirse tekrar oluşturulur
+                // Eğer step marker , step latlng listeleri boşsa başlangıç marker'ını oluşturulur / İşaretler temizlenirse tekrar oluşturulur
                 if (mapsState.stepLatLng.isEmpty() && mapsState.stepMarker.isEmpty()) {
-                    println("teest added starting marker")
                     createStartingMarker(googleMap, latLng)
                 }
                 // Mevcut konuma göre kullanıcı marker güncellenir
@@ -132,8 +124,7 @@ class MapsFragment : Fragment() {
         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
     }
 
-    // İlk kez kullanıcı marker'ı oluşturur ve haritayı bu noktaya zoom yapar
-    // GoogleMap myLocation enable edildikten sonra kullanılmasına gerek kalmadı , özelleştirme yapılmak istenirse aktif edilir
+    // kullanıcı marker'ı oluşturur ve haritayı bu noktaya zoom yapar
     private fun createUserMarker(googleMap: GoogleMap, latLng: LatLng) {
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
 
@@ -189,7 +180,7 @@ class MapsFragment : Fragment() {
         }
     }
 
-    // Adres bilgisini almak için marker ekleyen yardımcı metod , geooder sınıfı api 33 ve üzerinde callback fonksiyonu ile çalışıyor , 33 ve üzeri için blocking fonksiyon kullanıldı
+    // Adres bilgisini almak için marker ekleyen yardımcı metod , geocoder sınıfı api 33 ve üzerinde callback fonksiyonu ile çalışıyor
     private fun addMarkerWithAddress(
         googleMap: GoogleMap,
         latLng: LatLng,
@@ -225,7 +216,6 @@ class MapsFragment : Fragment() {
             )
         } else {
 
-            //bulamadığım durumlarda geocoder.getFromLocation() tekrardan test edebilecek ortam oluşturamadığım IOException grpc failed hatası veriyor
             lifecycleScope.launch(Dispatchers.IO) {
 
                 val addressTitle = try {
@@ -237,12 +227,11 @@ class MapsFragment : Fragment() {
                 }
 
                 withContext(Dispatchers.Main) {
-                    // Marker ekleme işlemi
                     val marker = googleMap.addMarker(
                         MarkerOptions().position(latLng).title(addressTitle)
                             .icon(BitmapDescriptorFactory.defaultMarker(markerHue))
                     )
-                    onMarkerAdded(marker) // onMarkerAdded'ı burada tetikliyorsun
+                    onMarkerAdded(marker)
                 }
             }
         }

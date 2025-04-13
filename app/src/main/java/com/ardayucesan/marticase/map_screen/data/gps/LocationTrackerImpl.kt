@@ -3,7 +3,6 @@ package com.ardayucesan.marticase.map_screen.data.gps
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
-import android.location.LocationManager
 import android.os.Looper
 import com.ardayucesan.marticase.map_screen.domain.LocationTracker
 import com.ardayucesan.marticase.map_screen.domain.utils.GpsError

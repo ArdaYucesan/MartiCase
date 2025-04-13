@@ -9,6 +9,4 @@ interface LocationTracker {
     fun getLocationUpdates(
         interval: Long,
     ): Flow<Result<Location, GpsError>>
-
-    class LocationException(message: String) : Exception()
 }

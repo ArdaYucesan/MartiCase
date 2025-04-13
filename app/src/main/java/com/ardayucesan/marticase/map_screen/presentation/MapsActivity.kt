@@ -2,7 +2,6 @@ package com.ardayucesan.marticase.map_screen.presentation
 
 import android.Manifest
 import android.app.AlertDialog
-import android.app.usage.NetworkStatsManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,7 +10,6 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -49,12 +47,13 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
  */
 class MapsActivity : AppCompatActivity() {
 
-    //mapsViewModel koin ile inject edildi ,Singleton olarak inject edildiği için MapsFragment ile aynı viewModel instance'ı kullanmış olduk
+    // mapsViewModel koin ile inject edildi ,Singleton olarak inject edildiği için MapsFragment ile aynı viewModel instance'ı kullanmış olduk
     private val mapsViewModel: MapsViewModel by viewModel<MapsViewModel>()
 
     private lateinit var binding: ActivityMapsBinding
     private val REQUEST_LOCATION_PERMISSION = 1
 
+    // LocationService üzerinden gönderilen başlangıç , bitiş verilerini dinleyen receiver
     private val serviceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
 
@@ -141,7 +140,6 @@ class MapsActivity : AppCompatActivity() {
                     }
 
                     MapsEvent.ShowGpsDisabledDialog -> {
-                        stopLocationService()
                         showGpsDisabledDialog()
                     }
 
@@ -168,27 +166,6 @@ class MapsActivity : AppCompatActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        println("on resumed")
-
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//            val filter = IntentFilter("com.ardayucesan.marticase")
-//
-//            registerReceiver(
-//                serviceReceiver,
-//                filter,
-//                Context.RECEIVER_NOT_EXPORTED
-//            )
-//        } else {
-//            val filter = IntentFilter("com.ardayucesan.marticase")
-//            @Suppress("UnspecifiedRegisterReceiverFlag")
-//            registerReceiver(
-//                serviceReceiver, filter,
-//            )
-//        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         unregisterReceiver(serviceReceiver)
@@ -197,12 +174,10 @@ class MapsActivity : AppCompatActivity() {
     private fun checkRequirementsAndStartService() {
         when {
             !isGpsEnabled() -> {
-                println("gps is disabled")
                 showGpsDisabledDialog()
             }
 
             !isNetworkEnabled() -> {
-                println("network is disabled")
                 showNetworkDisabledDialog()
             }
 
@@ -233,7 +208,7 @@ class MapsActivity : AppCompatActivity() {
             .setTitle("İnternet Bağlantısı")
             .setMessage("İnternet bağlantınızı kontrol etmek ister misiniz?")
             .setPositiveButton("Ayarlar") { _, _ ->
-                val intent = Intent(Settings.ACTION_WIFI_SETTINGS) // Wi-Fi ayarlarına gitmek için
+                val intent = Intent(Settings.ACTION_WIFI_SETTINGS)
                 startActivity(intent)
             }
             .setNegativeButton("İptal", { dialog, _ ->
@@ -271,7 +246,6 @@ class MapsActivity : AppCompatActivity() {
         val connectivityManager =
             getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-        // API 23 (Android 6.0) ve sonrası için NetworkCapabilities kullanarak bağlantıyı kontrol et
         val network = connectivityManager.activeNetwork
         val capabilities = connectivityManager.getNetworkCapabilities(network)
 

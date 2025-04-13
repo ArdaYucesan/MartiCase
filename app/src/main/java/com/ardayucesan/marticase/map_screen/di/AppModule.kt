@@ -1,8 +1,6 @@
 package com.ardayucesan.marticase.map_screen.di
 
-import com.ardayucesan.marticase.BuildConfig
 import com.ardayucesan.marticase.map_screen.data.gps.LocationTrackerImpl
-import com.ardayucesan.marticase.map_screen.data.gps.LocationTrackerMockImpl
 import com.ardayucesan.marticase.map_screen.data.gps.repository_impl.LocationRepositoryImpl
 import com.ardayucesan.marticase.map_screen.data.network.HttpClientFactory
 import com.ardayucesan.marticase.map_screen.data.network.repository_impl.RoutesRepositoryImpl
@@ -11,7 +9,6 @@ import com.ardayucesan.marticase.map_screen.domain.repository.LocationRepository
 import com.ardayucesan.marticase.map_screen.domain.repository.RoutesRepository
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetRoutesUseCase
 import com.ardayucesan.marticase.map_screen.domain.use_case.GetUserLocationUseCase
-import com.ardayucesan.marticase.map_screen.presentation.LocationService
 import com.ardayucesan.marticase.map_screen.presentation.MapsViewModel
 import com.google.android.gms.location.LocationServices
 import io.ktor.client.engine.okhttp.OkHttp

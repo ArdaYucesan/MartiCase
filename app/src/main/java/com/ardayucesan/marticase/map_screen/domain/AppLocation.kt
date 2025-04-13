@@ -25,21 +25,3 @@ data class AppLocation(
         )
     }
 }
-
-//fun AppLocation.toLatLng(): LatLng {
-//    return LatLng(
-//        this.latitude,
-//        this.longitude,
-//    )
-//}
-
-//fun AppLocation.toLocationWrapper(): LocationWrapper {
-//    return LocationWrapper(
-//        location = LatLngWrapper(
-//            latLng = LatLngDto(
-//                latitude = this.latitude,
-//                longitude = this.longitude
-//            )
-//        )
-//    )
-//}

@@ -20,6 +20,7 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
+// ktor için dependency injection modülünde HttpClientEngine sağlanarak HttpClient oluşturan factory
 object HttpClientFactory {
 
     fun create(engine: HttpClientEngine): HttpClient {

@@ -9,6 +9,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.coroutines.DelicateCoroutinesApi
 import com.ardayucesan.marticase.map_screen.domain.utils.Result
 
+// parametre olarak aldığı fonksiyonu try-catch bloğunda çalıştırır , hata yoksa responseToResult fonksiyonuna iletir
 @OptIn(DelicateCoroutinesApi::class)
 suspend inline fun <reified T> safeCall(
     execute: () -> HttpResponse
@@ -31,6 +32,8 @@ suspend inline fun <reified T> safeCall(
         //TODO: bunu tekrardan incele detaylarına bak
         println("genel exception içindeyim")
         e.printStackTrace()
+
+        //co routine iptal edildiyse CancellationException fırlatır kodu devam ettirmez
         coroutineContext.ensureActive()
 
         return Result.Error(NetworkError.Unknown(e.message ?: "Unknown error exception"))

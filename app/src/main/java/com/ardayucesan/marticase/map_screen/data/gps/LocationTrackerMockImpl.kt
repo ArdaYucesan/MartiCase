@@ -36,27 +36,13 @@ class LocationTrackerMockImpl(
         interval: Long
     ): Flow<Result<Location, GpsError>> {
 
-        //returns callback results as flows
         return callbackFlow {
-
-            println("get location update tracker called")
             if (!context.hasLocationPermission()) {
-                //TODO : add new errors for this to GpsError sealed classes
                 launch { send(Result.Error(GpsError.UnknownException("Missing location permission"))) }
-            }
-
-            val locationManager =
-                context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-            val isNetworkEnabled =
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            if (!isGpsEnabled && !isNetworkEnabled) {
-                launch { send(Result.Error(GpsError.UnknownException("Gps is disabled"))) }
             }
 
             startMockingLocations(mockPaths, 1000)
 
-            //imported as android.gms.location LocationRequest otherwise gives error on requestLocationUpdates function
             val request = LocationRequest.Builder(1000).apply {
                 setMinUpdateIntervalMillis(1000)
             }.build()
@@ -75,7 +61,6 @@ class LocationTrackerMockImpl(
                 request, locationCallback, Looper.getMainLooper()
             )
 
-            //when launched co routine closed remove the location updates as well
             awaitClose {
                 client.removeLocationUpdates(locationCallback)
             }

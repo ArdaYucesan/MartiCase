@@ -23,7 +23,7 @@ data class LocationWrapper(
 
 @Serializable
 data class LatLngWrapper(
-    // not used libraries LatLng because of serialization error
+    // android gms LatLng sınıfını Serializable yapamadığım için kyllanmadım kendi dto sınıfımı yazdım
     val latLng: LatLngDto
 )
 

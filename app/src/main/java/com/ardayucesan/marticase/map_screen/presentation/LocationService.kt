@@ -29,12 +29,13 @@ import org.koin.android.ext.android.inject
 
 class LocationService : Service() {
 
-    //why service scope look into that again
+    // LocationTracker üzerinden gelen flow'un collect edileceği coroutine scope , servis kapatıldığında cancel edilip LocationTracker üzerinden gelen veri akışı durdurulur
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val locationTracker: LocationTracker by inject()
     private val locationRepository: LocationRepository by inject()
 
+    // Konum bilgisini dinler ve kapatıldığında kullanıcıya Toast bildirimi gönderir ve servisi kapatır
     private val locationListener = object : android.location.LocationListener {
         override fun onProviderEnabled(provider: String) {
         }
@@ -57,7 +58,7 @@ class LocationService : Service() {
         }
     }
 
-    //no need to bind
+    // bu servis bağlı çalışmayacağı için null dönüyor
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
@@ -82,7 +83,8 @@ class LocationService : Service() {
 
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-        if(this.hasLocationPermission()){
+        // sadece konum bilgisi açık mı kapalı mı kontrolü için kullanıldı
+        if (this.hasLocationPermission()) {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER,
                 0,
@@ -91,9 +93,7 @@ class LocationService : Service() {
             )
         }
 
-        val broadcastIntent = Intent("com.ardayucesan.marticase")
-        broadcastIntent.putExtra("status", ACTION_START)
-        sendBroadcast(broadcastIntent)
+        sendServiceStartedBroadcast()
 
         val notification = NotificationCompat.Builder(this, GPS_SERVICE_NOTIFICATION_CHANNEL)
             .setContentTitle("Tracking location...")
@@ -117,11 +117,10 @@ class LocationService : Service() {
                 when (result) {
                     is Result.Success -> {
                         val location = result.data
-                        notification.setContentText("Location: (${location.latitude}, ${location.longitude})")
+                        notification.setContentText("Koordinat: (${location.latitude}, ${location.longitude})")
                     }
 
                     is Result.Error -> {
-                        println("err service ${result.error}")
 
                         when (result.error) {
 
@@ -135,7 +134,6 @@ class LocationService : Service() {
                                 }
                                 notification.setContentText("GPS kapalı - Servis duracak")
                                 stop()
-                                // Give some time for user to enable GPS
                             }
 
                             is GpsError.NetworkDisabled -> {
@@ -170,13 +168,24 @@ class LocationService : Service() {
         stopSelf()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun sendServiceStartedBroadcast() {
+        val broadcastIntent = Intent("com.ardayucesan.marticase")
+        broadcastIntent.putExtra("status", ACTION_START)
+        sendBroadcast(broadcastIntent)
+    }
+
+    private fun sendServiceStoppedBroadcast() {
         val broadcastIntent = Intent("com.ardayucesan.marticase")
         broadcastIntent.putExtra("status", ACTION_STOP)
 
         // Öncelikli olarak broadcast gönder
         sendBroadcast(broadcastIntent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        sendServiceStoppedBroadcast()
         serviceScope.cancel()
     }
 

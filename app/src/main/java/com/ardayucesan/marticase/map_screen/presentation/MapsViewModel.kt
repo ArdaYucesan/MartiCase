@@ -45,7 +45,6 @@ class MapsViewModel(
         when (gpsResult) {
             is Result.Error -> {
                 viewModelScope.launch {
-                    println("teest error coming to viewModel ${gpsResult.error.message} ")
                     when (gpsResult.error) {
                         is GpsError.GpsDisabled -> _events.send(MapsEvent.ShowGpsDisabledDialog)
                         is GpsError.MissingLocationPermission -> _events.send(MapsEvent.RequestLocationPermission)
@@ -60,7 +59,6 @@ class MapsViewModel(
             }
 
             is Result.Success -> {
-                println("teest location in viewModel ${gpsResult.data.toAppLocation()}")
                 _mapsState.postValue(
                     _mapsState.value?.copy(userLocation = gpsResult.data.toAppLocation())
                 )
