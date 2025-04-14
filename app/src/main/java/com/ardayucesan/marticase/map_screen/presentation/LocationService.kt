@@ -64,7 +64,6 @@ class LocationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        println("when is this calling")
         when (intent?.action) {
             ACTION_START -> start()
             ACTION_STOP -> stop()
