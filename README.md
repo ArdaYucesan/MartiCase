@@ -27,8 +27,8 @@ Bu Android uygulaması, Google Maps ve Routes API kullanarak gerçek zamanlı ko
 
 ## Kurulum Notları
 - **Projeyi çalıştırmadan önce secret.properties dosyası oluşturmanız gerekmektedir.**
-- **secret.properties dosyasına Google Cloud Platform API anahtarınızı (API Key) ve Routes API Base URL bilgisini ekleyin.**
-- **Eğer secret.properties dosyası bulunamazsa, proje otomatik olarak secret.default.properties dosyasını kullanacaktır**
+- **secrets.properties dosyasına Google Cloud Platform API anahtarınızı (API Key) ve Routes API Base URL bilgisini ekleyin.**
+- **Eğer secrets.properties dosyası bulunamazsa, proje otomatik olarak secret.default.properties dosyasını kullanacaktır**
 - **Uygulamada kullandığım  Routes API Base URL bilgisi, secret.default.properties dosyasında mevcuttur**
 
 ## Proje Yapısı
