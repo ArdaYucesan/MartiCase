@@ -25,6 +25,12 @@ Bu Android uygulaması, Google Maps ve Routes API kullanarak gerçek zamanlı ko
 ## Not
 - **Uygulamanın kullanılabilmesi için Google Cloud Api Key gereklidir , Api key olmadığı durumda Routes API network çağrısı normal şekilde hata mesajı gösterir fakat GoogleMap Fragment davranışı için edge case testi yapılmadı**
 
+## Kurulum Notları
+- **Projeyi çalıştırmadan önce secret.properties dosyası oluşturmanız gerekmektedir.**
+- **secret.properties dosyasına Google Cloud Platform API anahtarınızı (API Key) ve Routes API Base URL bilgisini ekleyin.**
+- **Eğer secret.properties dosyası bulunamazsa, proje otomatik olarak secret.default.properties dosyasını kullanacaktır**
+- **Uygulamada kullandığım  Routes API Base URL bilgisi, secret.default.properties dosyasında mevcuttur**
+
 ## Proje Yapısı
 ```plaintext
 app/
